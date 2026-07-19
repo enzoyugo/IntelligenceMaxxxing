@@ -221,9 +221,27 @@ without expanding scope (see `docs/reviews/STAGE_1_1_ISOLATION_INTEGRITY_HARDENI
 
 See `docs/architecture/STREAM_HEAD_AND_QUARANTINE_MODEL.md`.
 
+## Integrated in Stage 2 (first external client)
+
+LifeMaxxxing is the first registered client application
+(see `docs/reviews/STAGE_2_LIFEMAXXXING_INTEGRATION_REPORT.md`):
+
+- **Standalone SDK:** `sdk/python` builds an `intelligence-maxxxing-client`
+  wheel (httpx + pydantic only, Python >=3.10, no Engine Core) via
+  `scripts/sdk/build_client_sdk.ps1`; certified in a clean virtualenv by
+  `scripts/sdk/test_client_sdk.ps1`.
+- **Life namespace:** LifeMaxxxing submits minimized `domain_pack="life"`
+  observations through the public contract; the Engine contains zero
+  Life-specific logic.
+- **Cross-repo gate:** `scripts/audit/run_lifemaxxxing_contract_gates.ps1`
+  proves the vertical slice (sync, replay idempotency, data minimization,
+  audit recoverability, cross-app isolation, offline behaviour, secret scan)
+  on real PostgreSQL and real HTTP.
+- **Compatibility lock:** `docs/integrations/lifemaxxxing_compatibility_lock.json`.
+
 ## Explicitly out of scope (Stage 1 / Stage 1.1)
 
-Frontend/console, client application integrations, real Domain Pack logic,
+Frontend/console, further client application integrations, real Domain Pack logic,
 hypothesis generation, Belief Engine, Cross-Domain Coordinator, knowledge graph,
 vector DB, LLMs, trading/bet execution, microservices, cloud deployment, active
 autonomy, real recommendations, signed JWT tokens, HTTP admin endpoints, active
@@ -244,4 +262,5 @@ rate limiting (hook contract only), automatic/scheduled integrity verification.
 - `docs/architecture/STREAM_HEAD_AND_QUARANTINE_MODEL.md` — concurrent chain heads and quarantine (Stage 1.1).
 - `docs/runbooks/MIGRATION_SAFETY.md` — destructive migration gates.
 - `docs/runbooks/LOCAL_DEVELOPMENT.md` — day-to-day commands.
+- `docs/integrations/LIFEMAXXXING_INTEGRATION.md` — first external client (Stage 2).
 - `docs/reviews/` — sprint reports and conflict records.

@@ -1,0 +1,59 @@
+{
+  "lock_version": 1,
+  "certified_at": "2026-07-19",
+  "engine": {
+    "api_version": "v1",
+    "engine_version": "0.1.0",
+    "observation_schema_version": "1.0"
+  },
+  "sdk": {
+    "package": "intelligence-maxxxing-client",
+    "version": "0.1.0",
+    "python_requires": ">=3.10",
+    "dependencies": ["httpx>=0.27", "pydantic>=2.7"]
+  },
+  "application": {
+    "display_name": "LifeMaxxxing",
+    "domain_pack": "life",
+    "observed_by": "lifemaxxxing-backend",
+    "scopes": ["SUBMIT_OBSERVATION", "READ_AUDIT", "READ_INTELLIGENCE"]
+  },
+  "event_types": {
+    "life.daily_check_in.completed.v1": {
+      "subject": "daily_check_in",
+      "knowledge_class": "OBSERVED_FACT",
+      "sent_fields": [
+        "happiness", "energy", "stress", "productivity", "sleep_hours",
+        "calories_consumed", "calories_burned", "weight",
+        "deep_work_blocks", "meetings_count",
+        "gym_done", "football_played", "social_activity", "alcohol"
+      ],
+      "excluded_fields": ["main_work_win", "main_blocker", "notes", "source"]
+    },
+    "life.workout.completed.v1": {
+      "subject": "workout",
+      "knowledge_class": "OBSERVED_FACT",
+      "sent_fields": [
+        "type", "duration_minutes", "intensity", "bodyweight_kg",
+        "exercise_count", "total_sets", "total_volume_kg"
+      ],
+      "excluded_fields": ["notes", "exercises", "title", "description"]
+    }
+  },
+  "life_backend_endpoints": [
+    "GET /api/intelligence/status",
+    "POST /api/intelligence/observations/sync",
+    "GET /api/intelligence/audits/{audit_id}"
+  ],
+  "life_backend_error_codes": [
+    "unknown_event_type", "engine_validation", "engine_conflict",
+    "engine_not_found", "engine_auth", "engine_unavailable",
+    "engine_unreachable", "engine_disabled", "engine_not_configured",
+    "engine_error"
+  ],
+  "gates": {
+    "cross_repo": "scripts/audit/run_lifemaxxxing_contract_gates.ps1",
+    "sdk_build": "scripts/sdk/build_client_sdk.ps1",
+    "sdk_certification": "scripts/sdk/test_client_sdk.ps1"
+  }
+}
