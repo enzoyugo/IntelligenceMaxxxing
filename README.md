@@ -188,7 +188,7 @@ with IntelligenceMaxxxingClient(
 - **Authorization:** scope enforcement on all `/api/v1/*` endpoints (`SUBMIT_OBSERVATION`, `READ_INTELLIGENCE`, `READ_AUDIT`).
 - **Identity model:** tenant, user, application, service, actor; CLI-only admin.
 - **Event catalog:** 12 registered event types; unregistered payloads rejected.
-- **Integrity chain:** SHA-256 per `(owner_id, application_id)` stream; CLI `verify-integrity`.
+- **Integrity chain:** SHA-256 per `(tenant, owner, application)` stream (Stage 1.1); CLI `verify-integrity`.
 - **Projections:** `accepted_observations` derived from events; rebuildable; checkpointed.
 - **PostgreSQL enforcement:** REVOKE + triggers on ledger tables; roles `engine_migrator`, `engine_runtime`, `engine_readonly`.
 - **Health:** `/health/live`, `/health/ready` (public); `/api/v1/health` (authenticated, measured).
@@ -199,13 +199,35 @@ with IntelligenceMaxxxingClient(
 Everything from Stage 0 remains: append-only event store, audit trail, canonical
 schemas, constitutional tests, public Python SDK.
 
-## Explicitly out of scope (Stage 1)
+## Hardened in Stage 1.1 (adversarial fixes)
+
+An independent audit found blocking defects in Stage 1; Stage 1.1 corrects them
+without expanding scope (see `docs/reviews/STAGE_1_1_ISOLATION_INTEGRITY_HARDENING_REPORT.md`):
+
+- **Application-scoped audits:** audit reads are scoped by `(tenant, owner, application)`; an
+  application cannot read another application's audit under the same owner — out-of-scope ids
+  return **404** (no existence leak).
+- **Concurrency-safe integrity chain:** a transactional `event_stream_heads` row
+  (`SELECT … FOR UPDATE`) serializes same-stream writers so 20 concurrent appends form one
+  valid chain — proven on real PostgreSQL.
+- **Real quarantine kill-switch:** a detected break sets the stream `QUARANTINED` and rejects
+  new writes (`STREAM_QUARANTINED` → 409); release is CLI-only and requires `ADMINISTER_ENGINE`
+  plus a successful full verify.
+- **Incremental integrity anchor:** `integrity_checkpoints` anchor INCREMENTAL verification so
+  a legitimate mid-stream start is never mistaken for corruption.
+- **Non-destructive projection verify:** `verify` compares a shadow build to live without
+  mutating it; `rebuild` promotes atomically.
+- **Scoped aggregates:** aggregate identity includes `(tenant, owner, application)`.
+
+See `docs/architecture/STREAM_HEAD_AND_QUARANTINE_MODEL.md`.
+
+## Explicitly out of scope (Stage 1 / Stage 1.1)
 
 Frontend/console, client application integrations, real Domain Pack logic,
 hypothesis generation, Belief Engine, Cross-Domain Coordinator, knowledge graph,
 vector DB, LLMs, trading/bet execution, microservices, cloud deployment, active
 autonomy, real recommendations, signed JWT tokens, HTTP admin endpoints, active
-rate limiting (hook contract only), automatic integrity write blocking.
+rate limiting (hook contract only), automatic/scheduled integrity verification.
 
 ## Further reading
 
@@ -218,7 +240,8 @@ rate limiting (hook contract only), automatic integrity write blocking.
 - `docs/runbooks/POSTGRESQL_SETUP.md` — database setup.
 - `docs/runbooks/CREDENTIAL_BOOTSTRAP.md` — first-time credential setup.
 - `docs/runbooks/PROJECTION_REBUILD.md` — rebuild projections from events.
-- `docs/runbooks/INTEGRITY_VERIFICATION.md` — verify the hash chain.
+- `docs/runbooks/INTEGRITY_VERIFICATION.md` — verify the hash chain, quarantine and release.
+- `docs/architecture/STREAM_HEAD_AND_QUARANTINE_MODEL.md` — concurrent chain heads and quarantine (Stage 1.1).
 - `docs/runbooks/MIGRATION_SAFETY.md` — destructive migration gates.
 - `docs/runbooks/LOCAL_DEVELOPMENT.md` — day-to-day commands.
 - `docs/reviews/` — sprint reports and conflict records.

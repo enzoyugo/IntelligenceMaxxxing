@@ -136,6 +136,18 @@ Stage 1 ships the **contract only**. No default implementation is wired into the
 
 Events and audit records carry `tenant_id`, `owner_id`, and `application_id`. Read paths filter by the authenticated application's owner scope so one application cannot read another owner's data (`tests/integration/test_permissions_isolation.py`).
 
+### 9.1 Stage 1.1 — application-scoped audit reads
+
+Stage 1 isolated audits by owner but **not** by application: two applications under the same owner could read each other's audits. Stage 1.1 closes this. Every audit and audit-event read is scoped by the full triple `(tenant_id, owner_id, application_id, audit_id)`:
+
+- `AuditStorePort.get_by_audit_id(tenant_id, owner_id, application_id, audit_id)`
+- `EventStorePort.list_by_audit(tenant_id, owner_id, application_id, audit_id)`
+- `GetAuditUseCase` passes the authenticated `AuthContext` triple.
+
+An out-of-scope audit id (another application under the same owner, or another tenant) behaves as **missing → HTTP 404**, never 403, so existence is not leaked across applications or tenants. Regression: `tests/integration/test_audit_isolation.py` and `tests/postgres/test_stage1_1_hardening.py::test_cross_application_audit_exploit_regression` (SQLite and real PostgreSQL).
+
+Aggregate identity is likewise scoped by `(tenant_id, owner_id, application_id, aggregate_type, aggregate_id, aggregate_version)`; see `docs/architecture/STREAM_HEAD_AND_QUARANTINE_MODEL.md`.
+
 ---
 
 ## 10. Explicitly not in Stage 1

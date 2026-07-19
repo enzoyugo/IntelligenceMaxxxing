@@ -32,10 +32,18 @@ Read endpoints (`GET /api/v1/observations`, `GET /api/v1/observations/{id}`) que
 
 ## 3. Rebuild semantics
 
+> **Stage 1.1 update — non-destructive verify + atomic promote.** `verify`, `rebuild`, and
+> `promote` are now separated (§3.1). `rebuild(from_scratch=True)` no longer mutates live
+> in place; it builds into a shadow table and promotes atomically. `verify()` never touches
+> live. See §3.1 and `docs/runbooks/PROJECTION_REBUILD.md`.
+
 `ProjectionRebuildService.rebuild()` (`application/use_cases/projections.py`):
 
-1. **From scratch** (`from_scratch=True`, default): delete all rows in `accepted_observations`, clear the checkpoint, stream all events from position 0.
-2. **Resume** (`from_scratch=False`): read the checkpoint's `last_global_position`, stream events after that position.
+1. **From scratch** (`from_scratch=True`, default): replay all events from position 0 into
+   `accepted_observations_shadow`, validate, then **atomically promote** the shadow into
+   `accepted_observations` (delete + refill in one transaction) and clear the shadow.
+2. **Resume** (`from_scratch=False`): read the checkpoint's `last_global_position`, apply
+   events after that position directly to live (idempotent, forward-only).
 
 For each event:
 
@@ -50,6 +58,21 @@ After a successful rebuild:
 - Audit record with measured health snapshot
 
 Protected by tests: `PROJECTION_REBUILDS_FROM_ZERO`, `PROJECTION_REBUILD_IS_DETERMINISTIC`, `PROJECTION_CHECKPOINT_RESUMES`, `UNKNOWN_EVENT_STOPS_OR_QUARANTINES_BY_POLICY`.
+
+### 3.1 Verify / rebuild / promote (Stage 1.1)
+
+| Operation | Effect on live |
+|---|---|
+| `verify()` | **None.** Replays into `accepted_observations_shadow`, checksums it, compares to live, cleans the shadow, and returns a `VerifyReport` (`matches`, `live_checksum`, `shadow_checksum`, `quarantined`). Live is never read-locked or modified. |
+| `rebuild(from_scratch=True)` | Builds the shadow, validates, then promotes atomically. If validation succeeds live is replaced in one transaction; on unknown event the shadow reconstruction is quarantined and cleaned, live is left intact, and `UnknownProjectionEventError` is raised **before** any promotion. |
+| `rebuild(from_scratch=False)` | Applies only post-checkpoint events directly to live (idempotent catch-up). |
+
+`accepted_observations_shadow` has the same column shape as the live table. Promotion is a
+single-transaction delete-and-refill, so it commits or rolls back as one unit
+(`REBUILD_PROMOTION_IS_ATOMIC`, `FAILED_PROMOTION_ROLLS_BACK`). A verify that hits an unknown
+event reports `quarantined=True` and leaves live untouched
+(`UNKNOWN_EVENT_IN_SHADOW_DOES_NOT_EMPTY_LIVE`, `VERIFY_DOES_NOT_MUTATE_LIVE_PROJECTION`).
+Tests: `tests/integration/test_shadow_projection.py`.
 
 ---
 
@@ -68,9 +91,17 @@ Table: `projection_checkpoints`
 | `checksum` | SHA-256 of canonical row material (null when quarantined) |
 | `updated_at` | Last checkpoint write |
 
+**Chosen scoping model (Stage 1.1, explicit).** `accepted_observations` uses the **global
+checkpoint model**: exactly one checkpoint row with `owner_scope = ALL` and
+`application_scope = ALL`. Checkpoint lookups by `(projection_name, projection_version)` are
+therefore unambiguous — there is no false appearance of per-application checkpoints. Rows in
+the projection remain isolated by `tenant_id`/`owner_id`/`application_id`, and the read API
+never exposes cross-application data, so a global rebuild checkpoint is safe and is declared
+as the contract here.
+
 ### Append-only exception
 
-`projection_checkpoints` is **mutable derived state**. Unlike `engine_events` and `audit_records`, checkpoint rows may be **UPDATE**d (rebuilds update the single row per scope). **DELETE** and **TRUNCATE** are blocked by PostgreSQL triggers and role grants.
+`projection_checkpoints` is **mutable derived state**. Unlike `engine_events` and `audit_records`, checkpoint rows may be **UPDATE**d (rebuilds update the single row per scope). **DELETE** and **TRUNCATE** are blocked by PostgreSQL triggers and role grants. The Stage 1.1 control tables `event_stream_heads` and `integrity_checkpoints` follow the same exception.
 
 This is a documented exception to the append-only principle: checkpoints are disposable bookkeeping, not historical truth.
 
@@ -104,9 +135,11 @@ Thin wrappers around the CLI rebuild command:
 | Script | Purpose |
 |---|---|
 | `scripts/projections/rebuild_all.ps1` | Full rebuild of `accepted_observations` from position 0 |
-| `scripts/projections/verify_projections.ps1` | Rebuild from scratch and report checksum / row count |
+| `scripts/projections/verify_projections.ps1` | Non-destructive shadow verify (Stage 1.1); reports match, checksums, row counts |
 
-Both invoke `python -m intelligence_maxxxing.cli rebuild-projections`. See `docs/runbooks/PROJECTION_REBUILD.md`.
+`rebuild_all.ps1` invokes `python -m intelligence_maxxxing.cli rebuild-projections`;
+`verify_projections.ps1` invokes `python -m intelligence_maxxxing.cli verify-projections`
+(the live projection is left untouched). See `docs/runbooks/PROJECTION_REBUILD.md`.
 
 ---
 

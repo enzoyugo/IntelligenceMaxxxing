@@ -50,6 +50,27 @@ Checkpoints are disposable derived bookkeeping. Rebuilds UPDATE the single row p
 
 Runtime role has SELECT, INSERT, UPDATE, DELETE (rebuilds wipe and repopulate). This table is not part of the immutable ledger.
 
+### event_stream_heads / integrity_checkpoints — derived control state (Stage 1.1)
+
+Added by migration `0003_stage1_1_integrity_isolation_hardening`.
+
+| Operation | Allowed |
+|---|---|
+| SELECT | Yes |
+| INSERT | Yes (runtime) |
+| UPDATE | **Yes** (governed: append advances the head; verify advances the checkpoint; quarantine/release update status) |
+| DELETE | **Blocked** (trigger) |
+| TRUNCATE | **Blocked** (trigger) |
+
+These are engine-managed control state, not ledger evidence. The runtime role may advance
+them only through the governed append/verify/quarantine/release paths and can never clear a
+quarantine arbitrarily. See `docs/architecture/STREAM_HEAD_AND_QUARANTINE_MODEL.md`.
+
+### accepted_observations_shadow — staging, fully mutable (Stage 1.1)
+
+Staging copy used for non-destructive verify and atomic rebuild-then-promote. Runtime role
+has full DML; it holds no historical truth. See `docs/architecture/PROJECTION_MODEL.md §3.1`.
+
 ---
 
 ## 3. Trigger implementation
@@ -65,6 +86,8 @@ Triggers installed per table:
 | `engine_events` | blocked | blocked | blocked |
 | `audit_records` | blocked | blocked | blocked |
 | `projection_checkpoints` | allowed | blocked | blocked |
+| `event_stream_heads` (Stage 1.1) | allowed | blocked | blocked |
+| `integrity_checkpoints` (Stage 1.1) | allowed | blocked | blocked |
 
 ---
 
