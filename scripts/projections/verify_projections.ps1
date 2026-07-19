@@ -11,7 +11,7 @@ if (Test-Path ".env") {
     }
 }
 
-Write-Host "Verifying projections (rebuild from zero)..."
-python -m intelligence_maxxxing.cli rebuild-projections
+Write-Host "Verifying projections (non-destructive shadow compare)..."
+python -m intelligence_maxxxing.cli verify-projections
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-Write-Host "Projection verification rebuild complete."
+Write-Host "Projection verification complete (live projection untouched)."

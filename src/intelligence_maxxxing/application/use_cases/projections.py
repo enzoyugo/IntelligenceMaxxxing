@@ -59,6 +59,9 @@ _SKIPPED_EVENT_TYPES = frozenset(
         "ProjectionCheckpointCreated",
         "IntegrityCheckCompleted",
         "IntegrityViolationDetected",
+        "IntegrityStreamQuarantined",
+        "IntegrityStreamVerified",
+        "IntegrityStreamReleased",
     }
 )
 
@@ -75,6 +78,28 @@ class RebuildResult(BaseModel):
     from_scratch: bool
 
 
+class VerifyReport(BaseModel):
+    """Result of a NON-DESTRUCTIVE verification.
+
+    Verify replays events into the shadow table, checksums it and compares with
+    the live projection. It never modifies live: on mismatch or a quarantined
+    shadow reconstruction the live projection is preserved untouched.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    projection_name: str
+    projection_version: str
+    ok: bool
+    matches: bool
+    quarantined: bool
+    live_rows: int
+    shadow_rows: int
+    live_checksum: str
+    shadow_checksum: str
+    events_scanned: int
+
+
 class ProjectionRebuildService:
     def __init__(
         self,
@@ -89,40 +114,45 @@ class ProjectionRebuildService:
         self._health = health_provider
 
     def rebuild(self, *, from_scratch: bool = True) -> RebuildResult:
-        with self._uow as uow:
-            if from_scratch:
-                uow.projections.delete_all_observations()
-                uow.projections.delete_checkpoint(
-                    ACCEPTED_OBSERVATIONS_PROJECTION, ACCEPTED_OBSERVATIONS_VERSION
-                )
-                start_position = 0
-            else:
-                checkpoint = uow.projections.get_checkpoint(
-                    ACCEPTED_OBSERVATIONS_PROJECTION, ACCEPTED_OBSERVATIONS_VERSION
-                )
-                start_position = checkpoint.last_global_position if checkpoint else 0
+        """Rebuild the projection.
 
-            events = list(uow.events.stream_from_position(start_position, limit=1_000_000))
+        from_scratch=True: replay ALL events into the SHADOW table, then promote
+        atomically into live. Live is never emptied before a valid shadow build
+        exists, and an unknown event quarantines the shadow reconstruction
+        without touching live.
+
+        from_scratch=False: incrementally apply new events (after the checkpoint)
+        directly to the live projection. Application is idempotent and
+        forward-only, so this never rewrites existing rows.
+        """
+        if from_scratch:
+            return self._rebuild_from_scratch()
+        return self._resume()
+
+    def _rebuild_from_scratch(self) -> RebuildResult:
+        with self._uow as uow:
+            uow.projections.delete_all_shadow_observations()
+            events = list(uow.events.stream_from_position(0, limit=1_000_000))
             rows_written = 0
-            last_position = start_position
+            last_position = 0
             last_event_id: str | None = None
 
             try:
                 for event in events:
-                    self._apply(uow, event)
+                    self._apply(uow, event, shadow=True)
                     if event.event_type in _HANDLED_EVENT_TYPES:
                         rows_written += 1
                     if event.global_position is not None:
                         last_position = event.global_position
                     last_event_id = event.event_id
             except UnknownProjectionEventError:
+                # Quarantine the SHADOW reconstruction; live stays intact.
                 now = utc_now()
+                uow.projections.delete_all_shadow_observations()
                 uow.projections.save_checkpoint(
                     ProjectionCheckpoint(
                         projection_name=ACCEPTED_OBSERVATIONS_PROJECTION,
                         projection_version=ACCEPTED_OBSERVATIONS_VERSION,
-                        owner_scope="ALL",
-                        application_scope="ALL",
                         last_global_position=last_position,
                         last_event_id=last_event_id,
                         updated_at=now,
@@ -133,15 +163,16 @@ class ProjectionRebuildService:
                 uow.commit()
                 raise
 
-            all_rows = list(uow.projections.list_all_observations())
-            checksum = _checksum(all_rows)
+            # Validate the shadow build, then promote atomically.
+            shadow_rows = list(uow.projections.list_all_shadow_observations())
+            checksum = _checksum(shadow_rows)
+            uow.projections.promote_shadow_observations()
+
             now = utc_now()
             uow.projections.save_checkpoint(
                 ProjectionCheckpoint(
                     projection_name=ACCEPTED_OBSERVATIONS_PROJECTION,
                     projection_version=ACCEPTED_OBSERVATIONS_VERSION,
-                    owner_scope="ALL",
-                    application_scope="ALL",
                     last_global_position=last_position,
                     last_event_id=last_event_id,
                     updated_at=now,
@@ -208,25 +239,123 @@ class ProjectionRebuildService:
             rows_written=rows_written,
             last_global_position=last_position,
             checksum=checksum,
-            from_scratch=from_scratch,
+            from_scratch=True,
         )
 
-    def verify(self) -> RebuildResult:
-        """Rebuild into a fresh projection and compare checksums.
+    def _resume(self) -> RebuildResult:
+        """Forward-only, idempotent catch-up applied directly to live."""
+        with self._uow as uow:
+            checkpoint = uow.projections.get_checkpoint(
+                ACCEPTED_OBSERVATIONS_PROJECTION, ACCEPTED_OBSERVATIONS_VERSION
+            )
+            start_position = checkpoint.last_global_position if checkpoint else 0
+            events = list(uow.events.stream_from_position(start_position, limit=1_000_000))
+            rows_written = 0
+            last_position = start_position
+            last_event_id: str | None = checkpoint.last_event_id if checkpoint else None
 
-        Does not mutate the live projection if verification fails: it rebuilds
-        from scratch into the live table, so callers that want a non-destructive
-        check should capture the previous checksum first.
+            try:
+                for event in events:
+                    self._apply(uow, event, shadow=False)
+                    if event.event_type in _HANDLED_EVENT_TYPES:
+                        rows_written += 1
+                    if event.global_position is not None:
+                        last_position = event.global_position
+                    last_event_id = event.event_id
+            except UnknownProjectionEventError:
+                now = utc_now()
+                uow.projections.save_checkpoint(
+                    ProjectionCheckpoint(
+                        projection_name=ACCEPTED_OBSERVATIONS_PROJECTION,
+                        projection_version=ACCEPTED_OBSERVATIONS_VERSION,
+                        last_global_position=last_position,
+                        last_event_id=last_event_id,
+                        updated_at=now,
+                        status="QUARANTINED",
+                        checksum=None,
+                    )
+                )
+                uow.commit()
+                raise
+
+            all_rows = list(uow.projections.list_all_observations())
+            checksum = _checksum(all_rows)
+            now = utc_now()
+            uow.projections.save_checkpoint(
+                ProjectionCheckpoint(
+                    projection_name=ACCEPTED_OBSERVATIONS_PROJECTION,
+                    projection_version=ACCEPTED_OBSERVATIONS_VERSION,
+                    last_global_position=last_position,
+                    last_event_id=last_event_id,
+                    updated_at=now,
+                    status="READY",
+                    checksum=checksum,
+                )
+            )
+            uow.commit()
+
+        return RebuildResult(
+            projection_name=ACCEPTED_OBSERVATIONS_PROJECTION,
+            projection_version=ACCEPTED_OBSERVATIONS_VERSION,
+            events_scanned=len(events),
+            rows_written=rows_written,
+            last_global_position=last_position,
+            checksum=checksum,
+            from_scratch=False,
+        )
+
+    def verify(self) -> VerifyReport:
+        """NON-DESTRUCTIVE verification.
+
+        Replays all events into the SHADOW table, checksums it, compares with
+        the live projection, and NEVER modifies live. On an unknown event the
+        shadow reconstruction is quarantined and live is left untouched. Live
+        reads continue throughout (verify only writes the shadow table).
         """
-        return self.rebuild(from_scratch=True)
+        with self._uow as uow:
+            live_rows = list(uow.projections.list_all_observations())
+            live_checksum = _checksum(live_rows)
+
+            uow.projections.delete_all_shadow_observations()
+            events = list(uow.events.stream_from_position(0, limit=1_000_000))
+            quarantined = False
+            try:
+                for event in events:
+                    self._apply(uow, event, shadow=True)
+            except UnknownProjectionEventError:
+                quarantined = True
+
+            shadow_rows = list(uow.projections.list_all_shadow_observations())
+            shadow_checksum = _checksum(shadow_rows)
+            # Clean the shadow table; live was never touched.
+            uow.projections.delete_all_shadow_observations()
+            uow.commit()
+
+        matches = (not quarantined) and shadow_checksum == live_checksum
+        return VerifyReport(
+            projection_name=ACCEPTED_OBSERVATIONS_PROJECTION,
+            projection_version=ACCEPTED_OBSERVATIONS_VERSION,
+            ok=matches,
+            matches=matches,
+            quarantined=quarantined,
+            live_rows=len(live_rows),
+            shadow_rows=len(shadow_rows),
+            live_checksum=live_checksum,
+            shadow_checksum=shadow_checksum,
+            events_scanned=len(events),
+        )
 
     def _next_version(self, uow: UnitOfWorkPort) -> int:
         latest = uow.events.get_latest_aggregate_version(
-            "Projection", ACCEPTED_OBSERVATIONS_PROJECTION
+            SYSTEM_TENANT_ID,
+            SYSTEM_OWNER_ID,
+            SYSTEM_APPLICATION_ID,
+            "Projection",
+            ACCEPTED_OBSERVATIONS_PROJECTION,
         )
         return (latest or 0) + 1
 
-    def _apply(self, uow: UnitOfWorkPort, event: EngineEvent) -> None:
+    def _apply(self, uow: UnitOfWorkPort, event: EngineEvent, *, shadow: bool) -> None:
         if event.event_type in _SKIPPED_EVENT_TYPES:
             return
         if event.event_type not in _HANDLED_EVENT_TYPES:
@@ -261,7 +390,10 @@ class ProjectionRebuildService:
             created_at=event.recorded_at,
             audit_id=event.audit_id,
         )
-        uow.projections.upsert_observation(row)
+        if shadow:
+            uow.projections.upsert_shadow_observation(row)
+        else:
+            uow.projections.upsert_observation(row)
 
 
 def _as_object_dict(value: object) -> dict[str, object]:
