@@ -117,7 +117,7 @@ def test_new_state_does_not_overwrite_history(event_store: SqlAlchemyEventStore)
     assert before is not None and after is not None
     assert before.event_hash == after.event_hash
     assert before.payload == after.payload
-    history = event_store.list_by_aggregate(OWNER, "obs_" + "b" * 32)
+    history = event_store.list_by_aggregate("tnt_test", OWNER, APP, "obs_" + "b" * 32)
     assert [e.aggregate_version for e in history] == [1, 2]
 
 

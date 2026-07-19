@@ -90,3 +90,92 @@ def bootstrap_test_identity(
         credential_id=credential.credential_id,
         secret=secret,
     )
+
+
+def _make_admin(app: FastAPI) -> IdentityAdminService:
+    session_factory: sessionmaker[Session] = app.state.session_factory
+    settings = app.state.settings
+    health = MeasuredHealthSnapshotProvider(
+        SqlAlchemyDatabaseHealth(app.state.db_engine),
+        check_manifest=False,
+    )
+    return IdentityAdminService(
+        uow=SqlAlchemyUnitOfWork(session_factory),
+        engine_version=settings.engine_version,
+        api_version=API_VERSION,
+        health_provider=health,
+    )
+
+
+def register_application_for(
+    app: FastAPI,
+    *,
+    owner_id: str,
+    display_name: str,
+    scopes: tuple[PermissionScope, ...] = DEFAULT_SCOPES,
+) -> BootstrappedIdentity:
+    """Register an additional application under an EXISTING owner.
+
+    Used for same-owner cross-application isolation tests (App A vs App B).
+    """
+    admin = _make_admin(app)
+    application = admin.register_application(display_name, owner_id)
+    for scope in scopes:
+        admin.grant_scope(application.id, scope)
+    credential, secret = admin.create_credential(application.id)
+    return BootstrappedIdentity(
+        tenant_id=application.tenant_id,
+        owner_id=owner_id,
+        application_id=application.id,
+        credential_id=credential.credential_id,
+        secret=secret,
+    )
+
+
+def bootstrap_isolated_identity(
+    app: FastAPI,
+    *,
+    tenant_name: str,
+    owner_name: str,
+    display_name: str,
+    scopes: tuple[PermissionScope, ...] = DEFAULT_SCOPES,
+) -> BootstrappedIdentity:
+    """Create a brand-new tenant + owner + application (fully isolated).
+
+    Unlike bootstrap_test_identity, this never reuses the existing owner, so it
+    can be used for cross-tenant isolation tests.
+    """
+    from intelligence_maxxxing.domain.common.base import utc_now
+    from intelligence_maxxxing.domain.common.identifiers import (
+        TENANT_PREFIX,
+        USER_PREFIX,
+        new_id,
+    )
+    from intelligence_maxxxing.domain.identity import TenantIdentity, UserIdentity
+    from intelligence_maxxxing.infrastructure.repositories.identity import (
+        SqlAlchemyIdentityStore,
+    )
+
+    session_factory: sessionmaker[Session] = app.state.session_factory
+    with session_factory() as session:
+        store = SqlAlchemyIdentityStore(session)
+        tenant = TenantIdentity(
+            id=new_id(TENANT_PREFIX),
+            display_name=tenant_name,
+            created_at=utc_now(),
+            audit_id="aud_" + "e" * 32,
+        )
+        owner = UserIdentity(
+            id=new_id(USER_PREFIX),
+            tenant_id=tenant.id,
+            display_name=owner_name,
+            created_at=utc_now(),
+            audit_id="aud_" + "e" * 32,
+        )
+        store.add_tenant(tenant)
+        store.add_user(owner)
+        session.commit()
+
+    return register_application_for(
+        app, owner_id=owner.id, display_name=display_name, scopes=scopes
+    )

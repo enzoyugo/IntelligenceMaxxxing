@@ -11,6 +11,7 @@ scope do not exist on the ports (closed by design, not by convention).
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from datetime import datetime
+from enum import StrEnum
 from types import TracebackType
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -45,10 +46,32 @@ class EventStorePort(ABC):
     def get_by_event_id(self, event_id: str) -> EngineEvent | None: ...
 
     @abstractmethod
-    def list_by_aggregate(self, owner_id: str, aggregate_id: str) -> Sequence[EngineEvent]: ...
+    def list_by_aggregate(
+        self,
+        tenant_id: str,
+        owner_id: str,
+        application_id: str,
+        aggregate_id: str,
+    ) -> Sequence[EngineEvent]:
+        """Aggregate history within ONE (tenant, owner, application) scope.
+
+        Aggregate lookups never cross an application: the same aggregate_id in
+        another application is a different stream and is not returned here.
+        """
 
     @abstractmethod
-    def list_by_audit(self, owner_id: str, audit_id: str) -> Sequence[EngineEvent]: ...
+    def list_by_audit(
+        self,
+        tenant_id: str,
+        owner_id: str,
+        application_id: str,
+        audit_id: str,
+    ) -> Sequence[EngineEvent]:
+        """Events of an audit, scoped by tenant + owner + application.
+
+        An application can only see events of audits produced under its own
+        (tenant, owner, application); anything else behaves as not found.
+        """
 
     @abstractmethod
     def list_by_owner(
@@ -61,27 +84,54 @@ class EventStorePort(ABC):
 
     @abstractmethod
     def stream_for_stream_key(
-        self, owner_id: str, application_id: str, from_position: int = 0
+        self,
+        tenant_id: str,
+        owner_id: str,
+        application_id: str,
+        from_position: int = 0,
     ) -> Sequence[EngineEvent]:
-        """One (owner, application) integrity stream in global order."""
+        """One (tenant, owner, application) integrity stream in global order."""
 
     @abstractmethod
-    def list_stream_keys(self) -> Sequence[tuple[str, str]]:
-        """All distinct (owner_id, application_id) streams."""
+    def list_stream_keys(self) -> Sequence[tuple[str, str, str]]:
+        """All distinct (tenant_id, owner_id, application_id) streams."""
 
     @abstractmethod
-    def get_latest_aggregate_version(self, aggregate_type: str, aggregate_id: str) -> int | None:
-        """Latest recorded version for optimistic concurrency, or None."""
+    def get_latest_aggregate_version(
+        self,
+        tenant_id: str,
+        owner_id: str,
+        application_id: str,
+        aggregate_type: str,
+        aggregate_id: str,
+    ) -> int | None:
+        """Latest recorded version for optimistic concurrency, or None.
+
+        Scoped by (tenant, owner, application): concurrency and version
+        assignment for an aggregate never observe another application's stream.
+        """
 
 
 class AuditStorePort(ABC):
-    """Append-only audit trail. Reads are owner-scoped."""
+    """Append-only audit trail. Reads are scoped by tenant + owner + application."""
 
     @abstractmethod
     def append(self, record: AuditRecord) -> None: ...
 
     @abstractmethod
-    def get_by_audit_id(self, owner_id: str, audit_id: str) -> AuditRecord | None: ...
+    def get_by_audit_id(
+        self,
+        tenant_id: str,
+        owner_id: str,
+        application_id: str,
+        audit_id: str,
+    ) -> AuditRecord | None:
+        """Retrieve an audit only if it belongs to the given scope.
+
+        A caller cannot read an audit of another application (even under the
+        same owner) or another tenant; those behave exactly like a missing id
+        (404, not 403) to avoid existence leaks.
+        """
 
 
 class IdempotencyRecord(BaseModel):
@@ -233,16 +283,27 @@ class ObservationListFilters(BaseModel):
     limit: int = Field(default=50, ge=1, le=500)
 
 
+GLOBAL_SCOPE = "ALL"
+
+
 class ProjectionCheckpoint(BaseModel):
     """Checkpoint of a projection (mutable DERIVED state; documented
-    exception to append-only)."""
+    exception to append-only).
+
+    Scoping model (Stage 1.1 §9): the `accepted_observations` projector runs
+    GLOBALLY across every owner/application while keeping each projected ROW
+    owner/application-scoped. Its checkpoint is therefore a single global row
+    with ``owner_scope == application_scope == "ALL"``. There is intentionally
+    no per-application checkpoint interface; a lookup by
+    (projection_name, projection_version) is unambiguous by construction.
+    """
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     projection_name: str
     projection_version: str
-    owner_scope: str
-    application_scope: str
+    owner_scope: str = GLOBAL_SCOPE
+    application_scope: str = GLOBAL_SCOPE
     last_global_position: int = 0
     last_event_id: str | None = None
     updated_at: datetime
@@ -269,11 +330,33 @@ class ProjectionStorePort(ABC):
 
     @abstractmethod
     def list_all_observations(self) -> Sequence[ProjectedObservation]:
-        """All rows in deterministic order (verification/checksum only)."""
+        """All LIVE rows in deterministic order (verification/checksum only)."""
 
     @abstractmethod
     def delete_all_observations(self) -> int:
         """Rebuild support: the projection is derived state, never the ledger."""
+
+    # ---- shadow / staging (non-destructive verify + atomic promote) -------
+
+    @abstractmethod
+    def upsert_shadow_observation(self, row: ProjectedObservation) -> None:
+        """Idempotent apply into the SHADOW table (never touches live)."""
+
+    @abstractmethod
+    def list_all_shadow_observations(self) -> Sequence[ProjectedObservation]:
+        """All SHADOW rows in deterministic order (checksum/compare only)."""
+
+    @abstractmethod
+    def delete_all_shadow_observations(self) -> int:
+        """Clear the shadow/staging table before a shadow build."""
+
+    @abstractmethod
+    def promote_shadow_observations(self) -> int:
+        """Atomically replace live rows with the shadow set (same transaction).
+
+        Live is emptied and refilled from shadow, then shadow is cleared. The
+        whole swap commits or rolls back as one unit.
+        """
 
     @abstractmethod
     def get_checkpoint(
@@ -287,6 +370,91 @@ class ProjectionStorePort(ABC):
     def delete_checkpoint(self, projection_name: str, projection_version: str) -> None: ...
 
 
+class StreamStatus(StrEnum):
+    ACTIVE = "ACTIVE"
+    QUARANTINED = "QUARANTINED"
+    REBUILD_REQUIRED = "REBUILD_REQUIRED"
+
+
+class StreamHead(BaseModel):
+    """Snapshot of one integrity stream head (read model)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    tenant_id: str
+    owner_id: str
+    application_id: str
+    last_global_position: int
+    last_event_id: str | None
+    current_event_hash: str | None
+    stream_version: int
+    status: str
+    quarantine_reason: str | None = None
+    broken_event_id: str | None = None
+    quarantined_at: datetime | None = None
+    quarantine_audit_id: str | None = None
+    updated_at: datetime
+
+
+class IntegrityStreamCheckpoint(BaseModel):
+    """Last reliably verified point of one integrity stream."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    tenant_id: str
+    owner_id: str
+    application_id: str
+    last_verified_global_position: int
+    last_verified_event_id: str | None
+    last_verified_hash: str | None
+    verified_at: datetime
+    status: str
+
+
+class IntegrityStorePort(ABC):
+    """Stream heads and integrity checkpoints.
+
+    Stream heads and integrity checkpoints are engine-managed control state
+    (not ledger evidence): the runtime may update them through these governed
+    methods, but never rewrites events or audits, and never releases a
+    quarantine implicitly.
+    """
+
+    @abstractmethod
+    def get_stream_head(
+        self, tenant_id: str, owner_id: str, application_id: str
+    ) -> StreamHead | None: ...
+
+    @abstractmethod
+    def list_stream_heads(self) -> Sequence[StreamHead]: ...
+
+    @abstractmethod
+    def quarantine_stream(
+        self,
+        tenant_id: str,
+        owner_id: str,
+        application_id: str,
+        *,
+        reason: str,
+        broken_event_id: str,
+        audit_id: str,
+        detected_at: datetime,
+    ) -> None:
+        """Set the stream status to QUARANTINED (kill-switch)."""
+
+    @abstractmethod
+    def release_stream(self, tenant_id: str, owner_id: str, application_id: str) -> None:
+        """Return a QUARANTINED stream to ACTIVE (governed admin path only)."""
+
+    @abstractmethod
+    def get_integrity_checkpoint(
+        self, tenant_id: str, owner_id: str, application_id: str
+    ) -> IntegrityStreamCheckpoint | None: ...
+
+    @abstractmethod
+    def save_integrity_checkpoint(self, checkpoint: IntegrityStreamCheckpoint) -> None: ...
+
+
 class UnitOfWorkPort(ABC):
     """Transactional boundary grouping the stores of a single write path."""
 
@@ -295,6 +463,7 @@ class UnitOfWorkPort(ABC):
     idempotency: IdempotencyStorePort
     identity: IdentityStorePort
     projections: ProjectionStorePort
+    integrity: IntegrityStorePort
 
     @abstractmethod
     def __enter__(self) -> "UnitOfWorkPort": ...

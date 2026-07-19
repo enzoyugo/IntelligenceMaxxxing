@@ -60,8 +60,17 @@ class IdentityAdminService:
 
     # ------------------------------------------------------------------ utils
 
-    def _next_version(self, uow: UnitOfWorkPort, aggregate_type: str, aggregate_id: str) -> int:
-        latest = uow.events.get_latest_aggregate_version(aggregate_type, aggregate_id)
+    def _next_version(
+        self,
+        uow: UnitOfWorkPort,
+        tenant_id: str,
+        owner_id: str,
+        aggregate_type: str,
+        aggregate_id: str,
+    ) -> int:
+        latest = uow.events.get_latest_aggregate_version(
+            tenant_id, owner_id, SYSTEM_APPLICATION_ID, aggregate_type, aggregate_id
+        )
         return (latest or 0) + 1
 
     def _audit(
@@ -117,7 +126,9 @@ class IdentityAdminService:
             event_type=event_type,
             aggregate_type=aggregate_type,
             aggregate_id=aggregate_id,
-            aggregate_version=self._next_version(uow, aggregate_type, aggregate_id),
+            aggregate_version=self._next_version(
+                uow, tenant_id, owner_id, aggregate_type, aggregate_id
+            ),
             domain_pack="core",
             tenant_id=tenant_id,
             owner_id=owner_id,

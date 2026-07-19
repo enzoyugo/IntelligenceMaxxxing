@@ -1,7 +1,8 @@
 """SQLAlchemy implementation of the append-only audit store.
 
-Reads are owner-scoped: an application cannot retrieve another owner's audit
-by guessing its id.
+Reads are scoped by tenant + owner + application: an application cannot
+retrieve another application's audit (even under the same owner) or another
+tenant's audit by guessing its id. Out-of-scope ids behave as missing.
 """
 
 from datetime import UTC, datetime
@@ -67,10 +68,18 @@ class SqlAlchemyAuditStore(AuditStorePort):
         )
         self._session.add(row)
 
-    def get_by_audit_id(self, owner_id: str, audit_id: str) -> AuditRecord | None:
+    def get_by_audit_id(
+        self,
+        tenant_id: str,
+        owner_id: str,
+        application_id: str,
+        audit_id: str,
+    ) -> AuditRecord | None:
         stmt = select(AuditRecordRow).where(
             AuditRecordRow.audit_id == audit_id,
+            AuditRecordRow.tenant_id == tenant_id,
             AuditRecordRow.owner_id == owner_id,
+            AuditRecordRow.application_id == application_id,
         )
         row = self._session.scalars(stmt).first()
         return _row_to_record(row) if row is not None else None

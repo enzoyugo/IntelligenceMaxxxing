@@ -1,8 +1,10 @@
 """Retrieve a recoverable audit record with its associated events.
 
-Stage 1: owner-scoped. An application can only read audits of its own owner;
-another owner's audit id behaves exactly like a missing one (404, not 403,
-to avoid existence leaks across owners).
+Stage 1.1: scoped by tenant + owner + application. An application can only read
+audits it produced under its own (tenant, owner, application). Another
+application's audit id - even under the SAME owner - behaves exactly like a
+missing one (404, not 403), to avoid existence leaks across applications and
+tenants.
 """
 
 from pydantic import BaseModel, ConfigDict
@@ -28,9 +30,15 @@ class GetAuditUseCase:
 
     def execute(self, audit_id: str, auth: AuthContext) -> AuditBundle:
         with self._uow as uow:
-            record = uow.audits.get_by_audit_id(auth.owner_id, audit_id)
+            record = uow.audits.get_by_audit_id(
+                auth.tenant_id, auth.owner_id, auth.application_id, audit_id
+            )
             if record is None:
                 raise AuditNotFoundError(f"audit record not found: {audit_id}")
-            events = tuple(uow.events.list_by_audit(auth.owner_id, audit_id))
+            events = tuple(
+                uow.events.list_by_audit(
+                    auth.tenant_id, auth.owner_id, auth.application_id, audit_id
+                )
+            )
             uow.commit()
         return AuditBundle(audit=record, events=events)

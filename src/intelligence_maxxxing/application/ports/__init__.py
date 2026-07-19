@@ -1,6 +1,7 @@
 """Ports: abstract interfaces implemented by infrastructure."""
 
 from intelligence_maxxxing.application.ports.stores import (
+    GLOBAL_SCOPE,
     AuditStorePort,
     CredentialRecord,
     DatabaseHealthPort,
@@ -9,16 +10,21 @@ from intelligence_maxxxing.application.ports.stores import (
     IdempotencyRecord,
     IdempotencyStorePort,
     IdentityStorePort,
+    IntegrityStorePort,
+    IntegrityStreamCheckpoint,
     IntegrityViolationHookPort,
     ObservationListFilters,
     ProjectedObservation,
     ProjectionCheckpoint,
     ProjectionStorePort,
     RateLimitHookPort,
+    StreamHead,
+    StreamStatus,
     UnitOfWorkPort,
 )
 
 __all__ = [
+    "GLOBAL_SCOPE",
     "AuditStorePort",
     "CredentialRecord",
     "DatabaseHealthPort",
@@ -27,11 +33,15 @@ __all__ = [
     "IdempotencyRecord",
     "IdempotencyStorePort",
     "IdentityStorePort",
+    "IntegrityStorePort",
+    "IntegrityStreamCheckpoint",
     "IntegrityViolationHookPort",
     "ObservationListFilters",
     "ProjectedObservation",
     "ProjectionCheckpoint",
     "ProjectionStorePort",
     "RateLimitHookPort",
+    "StreamHead",
+    "StreamStatus",
     "UnitOfWorkPort",
 ]

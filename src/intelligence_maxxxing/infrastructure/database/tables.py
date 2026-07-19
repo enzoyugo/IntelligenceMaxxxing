@@ -34,7 +34,14 @@ class EngineEventRow(Base):
             "idempotency_key",
             name="uq_engine_events_idempotency_scope_key",
         ),
+        # Aggregate identity is scoped by (tenant, owner, application): the
+        # same aggregate_id may legitimately exist in two different
+        # applications/owners without colliding. Optimistic concurrency and
+        # aggregate lookups never cross an application boundary.
         UniqueConstraint(
+            "tenant_id",
+            "owner_id",
+            "application_id",
             "aggregate_type",
             "aggregate_id",
             "aggregate_version",
@@ -219,6 +226,85 @@ class AcceptedObservationRow(Base):
     occurred_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     audit_id: Mapped[str] = mapped_column(String(64), nullable=False)
+
+
+class AcceptedObservationShadowRow(Base):
+    """Shadow/staging copy of the accepted_observations projection.
+
+    A rebuild replays events into this table first; verification compares its
+    checksum with the live projection WITHOUT touching live rows. Only after a
+    shadow build validates is it promoted atomically into
+    `accepted_observations`. Identical column shape to the live table.
+    """
+
+    __tablename__ = "accepted_observations_shadow"
+
+    observation_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    global_position: Mapped[int] = mapped_column(BigInteger, nullable=False, index=True)
+    event_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    tenant_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    owner_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    application_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    domain_pack: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    schema_version: Mapped[str] = mapped_column(String(16), nullable=False)
+    subject: Mapped[str] = mapped_column(String(512), nullable=False)
+    statement: Mapped[str] = mapped_column(String(4000), nullable=False)
+    knowledge_class: Mapped[str] = mapped_column(String(64), nullable=False)
+    unknown_reason: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    observed_by: Mapped[str] = mapped_column(String(256), nullable=False)
+    context: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False, default=dict)
+    source_ids: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    meta: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False, default=dict)
+    occurred_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    audit_id: Mapped[str] = mapped_column(String(64), nullable=False)
+
+
+class EventStreamHeadRow(Base):
+    """Transactional head of one (tenant, owner, application) integrity stream.
+
+    The head is the single row that append() locks with SELECT ... FOR UPDATE
+    so that concurrent writers of the same stream serialize and chain onto one
+    another instead of forking on a stale previous hash. `status` is the real
+    kill-switch: a QUARANTINED stream rejects every new append.
+    """
+
+    __tablename__ = "event_stream_heads"
+
+    tenant_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    owner_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    application_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    last_global_position: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    last_event_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    current_event_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    stream_version: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="ACTIVE")
+    quarantine_reason: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    broken_event_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    quarantined_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    quarantine_audit_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class IntegrityCheckpointRow(Base):
+    """Last reliably verified point of one (tenant, owner, application) stream.
+
+    INCREMENTAL verification resumes from here, using `last_verified_hash` as
+    the anchor for the first event after the checkpoint. It is only advanced
+    when verification of the newer range succeeds (never on failure)."""
+
+    __tablename__ = "integrity_checkpoints"
+
+    tenant_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    owner_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    application_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    last_verified_global_position: Mapped[int] = mapped_column(
+        BigInteger, nullable=False, default=0
+    )
+    last_verified_event_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    last_verified_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    verified_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="OK")
 
 
 class ProjectionCheckpointRow(Base):
