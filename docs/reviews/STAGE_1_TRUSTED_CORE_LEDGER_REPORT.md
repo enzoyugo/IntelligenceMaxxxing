@@ -12,16 +12,18 @@ STAGE_1_TRUSTED_CORE_LEDGER_PASS
 | --- | --- |
 | Stage 0 final reference | `4ac55fc` |
 | Stage 1 baseline | `f221b2f` — `STAGE_1_BASELINE: freeze validated Stage 0` |
+| Implementation | `1e778fc` — `STAGE_1_IDENTITY_SECURITY` (includes ledger + projections; tightly coupled) |
+| Report | `6d1239c` — `STAGE_1_REPORT` |
 | Canonical branch | `main` |
 | Remote | `origin` → `https://github.com/enzoyugo/IntelligenceMaxxxing.git` |
 
-Suggested intermediate commits (`IDENTITY_SECURITY` / `LEDGER` / `PROJECTIONS`) were delivered as a coupled implementation set because identity, ledger schema, auth, projections and API surfaces share one migration and one transactional write path. Final history records baseline + implementation + report commits (see git log).
+Suggested intermediate commits (`LEDGER` / `PROJECTIONS` as separate SHAs) were combined into the identity/security implementation commit because identity, ledger schema, auth, projections and API surfaces share one migration and one transactional write path.
 
 ## Push and working tree
 
 | Item | Status |
 | --- | --- |
-| Push status | *(filled at push time)* |
+| Push status | PENDING_PUSH |
 | Working tree | clean after final commit |
 
 ## PostgreSQL verification
