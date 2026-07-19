@@ -2,11 +2,18 @@
 
 from pathlib import Path
 
+import pytest
 from alembic import command
 from alembic.config import Config
 from sqlalchemy import create_engine, inspect
 
 from tests.conftest import REPO_ROOT
+
+
+@pytest.fixture(autouse=True)
+def _isolate_database_url(monkeypatch: pytest.MonkeyPatch) -> None:
+    """migrations/env.py prefers DATABASE_URL; tests must not inherit ambient values."""
+    monkeypatch.delenv("DATABASE_URL", raising=False)
 
 
 def _alembic_config(database_url: str) -> Config:
