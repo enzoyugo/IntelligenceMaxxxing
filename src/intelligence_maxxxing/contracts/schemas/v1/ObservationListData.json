@@ -1,0 +1,175 @@
+{
+  "$defs": {
+    "ObservationView": {
+      "additionalProperties": false,
+      "description": "Public view of one accepted observation (from the projection).",
+      "properties": {
+        "audit_id": {
+          "title": "Audit Id",
+          "type": "string"
+        },
+        "context": {
+          "additionalProperties": true,
+          "title": "Context",
+          "type": "object"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "domain_pack": {
+          "title": "Domain Pack",
+          "type": "string"
+        },
+        "event_id": {
+          "title": "Event Id",
+          "type": "string"
+        },
+        "global_position": {
+          "title": "Global Position",
+          "type": "integer"
+        },
+        "knowledge_class": {
+          "title": "Knowledge Class",
+          "type": "string"
+        },
+        "metadata": {
+          "additionalProperties": true,
+          "title": "Metadata",
+          "type": "object"
+        },
+        "observation_id": {
+          "title": "Observation Id",
+          "type": "string"
+        },
+        "observed_by": {
+          "title": "Observed By",
+          "type": "string"
+        },
+        "occurred_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Occurred At"
+        },
+        "schema_version": {
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "statement": {
+          "title": "Statement",
+          "type": "string"
+        },
+        "subject": {
+          "title": "Subject",
+          "type": "string"
+        },
+        "unknown_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unknown Reason"
+        }
+      },
+      "required": [
+        "observation_id",
+        "schema_version",
+        "domain_pack",
+        "subject",
+        "statement",
+        "knowledge_class",
+        "observed_by",
+        "context",
+        "source_ids",
+        "metadata",
+        "occurred_at",
+        "created_at",
+        "audit_id",
+        "event_id",
+        "global_position"
+      ],
+      "title": "ObservationView",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Cursor-paginated list of accepted observations with projection freshness.",
+  "properties": {
+    "items": {
+      "items": {
+        "$ref": "#/$defs/ObservationView"
+      },
+      "title": "Items",
+      "type": "array"
+    },
+    "next_cursor": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Next Cursor"
+    },
+    "projection_name": {
+      "title": "Projection Name",
+      "type": "string"
+    },
+    "projection_position": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Projection Position"
+    },
+    "projection_updated_at": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Projection Updated At"
+    },
+    "projection_version": {
+      "title": "Projection Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "items",
+    "projection_name",
+    "projection_version"
+  ],
+  "title": "ObservationListData",
+  "type": "object"
+}

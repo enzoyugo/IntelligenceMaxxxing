@@ -11,7 +11,10 @@ from intelligence_maxxxing.api.envelope import build_meta, error_envelope
 from intelligence_maxxxing.application.errors import (
     ApplicationError,
     AuditNotFoundError,
+    AuthenticationError,
     IdempotencyConflictError,
+    ObservationNotFoundError,
+    PermissionDeniedError,
 )
 from intelligence_maxxxing.observability import get_logger
 
@@ -20,6 +23,9 @@ logger = get_logger("intelligence_maxxxing.api.errors")
 _STATUS_BY_ERROR: dict[type[ApplicationError], int] = {
     IdempotencyConflictError: status.HTTP_409_CONFLICT,
     AuditNotFoundError: status.HTTP_404_NOT_FOUND,
+    ObservationNotFoundError: status.HTTP_404_NOT_FOUND,
+    AuthenticationError: status.HTTP_401_UNAUTHORIZED,
+    PermissionDeniedError: status.HTTP_403_FORBIDDEN,
 }
 
 
@@ -62,7 +68,10 @@ def register_error_handlers(app: FastAPI) -> None:
     async def application_error_handler(request: Request, exc: ApplicationError) -> JSONResponse:
         status_code = _STATUS_BY_ERROR.get(type(exc), status.HTTP_400_BAD_REQUEST)
         envelope = error_envelope(code=exc.code, message=exc.message, meta=_meta_for(request))
-        return JSONResponse(status_code=status_code, content=envelope.model_dump())
+        headers = (
+            {"WWW-Authenticate": "Bearer"} if status_code == status.HTTP_401_UNAUTHORIZED else None
+        )
+        return JSONResponse(status_code=status_code, content=envelope.model_dump(), headers=headers)
 
     @app.exception_handler(Exception)
     async def unexpected_error_handler(request: Request, exc: Exception) -> JSONResponse:

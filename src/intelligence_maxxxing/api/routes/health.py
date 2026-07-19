@@ -1,16 +1,25 @@
-"""GET /api/v1/health with real component checks (API, database, manifest)."""
+"""Health endpoints.
+
+- GET /health/live          : process alive (no auth, no DB)
+- GET /health/ready         : can serve traffic (DB reachable; no secrets)
+- GET /api/v1/health        : authenticated detailed health (measured components)
+"""
 
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Response, status
+from fastapi.responses import JSONResponse
 
 from intelligence_maxxxing.api.dependencies import (
+    AuthDep,
     get_app_settings,
     get_database_health,
+    get_health_snapshot_provider,
     get_request_id,
 )
 from intelligence_maxxxing.api.envelope import build_meta, success_envelope
+from intelligence_maxxxing.application.ports import HealthSnapshotProviderPort
 from intelligence_maxxxing.config import EngineSettings
 from intelligence_maxxxing.contracts.api.envelope import ApiResponseEnvelope
 from intelligence_maxxxing.contracts.api.health import HealthData
@@ -24,6 +33,27 @@ from intelligence_maxxxing.governance.manifest import find_constitutional_dir
 from intelligence_maxxxing.infrastructure.health import SqlAlchemyDatabaseHealth
 
 router = APIRouter()
+public_router = APIRouter()
+
+
+@public_router.get("/health/live")
+def live() -> dict[str, str]:
+    """Process is alive. Never touches the database or secrets."""
+    return {"status": "ok"}
+
+
+@public_router.get("/health/ready")
+def ready(
+    database_health: Annotated[SqlAlchemyDatabaseHealth, Depends(get_database_health)],
+) -> JSONResponse:
+    """Basic readiness: database reachable. No sensitive detail."""
+    db = database_health.check()
+    if db.state is HealthState.HEALTHY:
+        return JSONResponse(status_code=status.HTTP_200_OK, content={"status": "ready"})
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        content={"status": "not_ready"},
+    )
 
 
 def _manifest_health() -> ComponentHealth:
@@ -50,19 +80,28 @@ def _manifest_health() -> ComponentHealth:
 
 @router.get("/health", response_model=ApiResponseEnvelope)
 def get_health(
-    request: Request,
+    auth: AuthDep,
+    response: Response,
     settings: Annotated[EngineSettings, Depends(get_app_settings)],
-    database_health: Annotated[SqlAlchemyDatabaseHealth, Depends(get_database_health)],
+    health_provider: Annotated[HealthSnapshotProviderPort, Depends(get_health_snapshot_provider)],
     request_id: Annotated[str, Depends(get_request_id)],
 ) -> ApiResponseEnvelope:
-    api_component = ComponentHealth(component="api", state=HealthState.HEALTHY)
-    db_component = database_health.check()
-    manifest_component = _manifest_health()
+    """Authenticated detailed health. Requires a valid credential (any scope)."""
+    _ = auth  # authentication is the gate; no specific scope required
+    snapshot = health_provider.capture()
+    measured = tuple(
+        ComponentHealth(component=c.component, state=c.state, detail=c.detail)
+        for c in snapshot.checked_components()
+    )
+    # Include the separate manifest probe for the detailed view.
+    measured = (*measured, _manifest_health())
+    status_agg = HealthStatus.aggregate(measured)
 
-    status = HealthStatus.aggregate((api_component, db_component, manifest_component))
+    if status_agg.status is HealthState.UNHEALTHY:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
 
     data = HealthData(
-        status=status.status.value,
+        status=status_agg.status.value,
         service="IntelligenceMaxxxing Engine",
         engine_version=settings.engine_version,
         constitution_version=settings.constitution_version,
@@ -70,6 +109,6 @@ def get_health(
     meta = build_meta(
         request_id=request_id,
         engine_version=settings.engine_version,
-        health={c.component: c.state.value for c in status.components},
+        health={c.component: c.state.value for c in status_agg.components},
     )
     return success_envelope(data.model_dump(), meta)

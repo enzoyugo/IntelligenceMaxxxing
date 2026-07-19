@@ -17,12 +17,16 @@ from intelligence_maxxxing.contracts.api.envelope import ApiResponseEnvelope
 from intelligence_maxxxing.contracts.api.health import HealthData
 from intelligence_maxxxing.contracts.api.observations import (
     ObservationAcceptedData,
+    ObservationListData,
+    ObservationView,
     SubmitObservationRequest,
 )
 
 PUBLIC_SCHEMAS: dict[str, type[BaseModel]] = {
     "SubmitObservationRequest": SubmitObservationRequest,
     "ObservationAcceptedData": ObservationAcceptedData,
+    "ObservationView": ObservationView,
+    "ObservationListData": ObservationListData,
     "AuditRecordData": AuditRecordData,
     "HealthData": HealthData,
     "ApiResponseEnvelope": ApiResponseEnvelope,

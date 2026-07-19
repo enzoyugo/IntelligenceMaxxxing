@@ -17,6 +17,7 @@ def build_meta(
     *,
     domain_pack: str = "core",
     health: dict[str, str] | None = None,
+    freshness: dict[str, Any] | None = None,
     audit_id: str | None = None,
 ) -> ResponseMeta:
     return ResponseMeta(
@@ -26,6 +27,7 @@ def build_meta(
         domain_pack=domain_pack,
         generated_at=datetime.now(UTC).isoformat(),
         health=health or {},
+        freshness=freshness or {},
         audit_id=audit_id,
     )
 

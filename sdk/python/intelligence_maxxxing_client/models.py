@@ -16,6 +16,7 @@ class EnvelopeMeta(BaseModel):
     generated_at: str
     audit_id: str | None = None
     health: dict[str, str] = Field(default_factory=dict)
+    freshness: dict[str, str] = Field(default_factory=dict)
 
 
 class HealthView(BaseModel):
@@ -35,6 +36,39 @@ class ObservationAcceptedView(BaseModel):
     event_id: str
     audit_id: str
     replayed: bool
+    meta: EnvelopeMeta
+
+
+class ObservationView(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    observation_id: str
+    schema_version: str
+    domain_pack: str
+    subject: str
+    statement: str
+    knowledge_class: str
+    unknown_reason: str | None = None
+    observed_by: str
+    context: dict[str, Any] = Field(default_factory=dict)
+    source_ids: list[str] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    occurred_at: str | None = None
+    created_at: str
+    audit_id: str
+    event_id: str
+    global_position: int
+
+
+class ObservationListView(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    items: list[ObservationView]
+    next_cursor: int | None = None
+    projection_name: str
+    projection_version: str
+    projection_position: int | None = None
+    projection_updated_at: str | None = None
     meta: EnvelopeMeta
 
 

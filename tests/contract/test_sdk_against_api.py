@@ -21,6 +21,7 @@ from intelligence_maxxxing_client import (
     EngineValidationError,
     IntelligenceMaxxxingClient,
 )
+from tests.fixtures.identity import BootstrappedIdentity
 
 
 def _free_port() -> int:
@@ -47,8 +48,14 @@ def live_engine_url(app: FastAPI) -> Iterator[str]:
 
 
 @pytest.fixture()
-def sdk_client(live_engine_url: str) -> Iterator[IntelligenceMaxxxingClient]:
-    with IntelligenceMaxxxingClient(base_url=live_engine_url, timeout_seconds=10.0) as client:
+def sdk_client(
+    live_engine_url: str, identity: BootstrappedIdentity
+) -> Iterator[IntelligenceMaxxxingClient]:
+    with IntelligenceMaxxxingClient(
+        base_url=live_engine_url,
+        credential_secret=identity.secret,
+        timeout_seconds=10.0,
+    ) as client:
         yield client
 
 
@@ -59,6 +66,9 @@ class TestSdkHealth:
         assert health.engine_version == "0.1.0"
         assert health.constitution_version == "1.1"
         assert health.meta.request_id.startswith("req_")
+
+    def test_live(self, sdk_client: IntelligenceMaxxxingClient) -> None:
+        assert sdk_client.live()["status"] == "ok"
 
 
 class TestSdkObservations:
@@ -120,6 +130,21 @@ class TestSdkObservations:
                 idempotency_key=f"sdk-{uuid.uuid4().hex}",
             )
 
+    def test_get_and_list_observations(self, sdk_client: IntelligenceMaxxxingClient) -> None:
+        accepted = sdk_client.submit_observation(
+            subject="sleep",
+            statement="Slept 8 hours",
+            knowledge_class="OBSERVED_FACT",
+            observed_by="sdk-test",
+            scope="personal",
+            idempotency_key=f"sdk-{uuid.uuid4().hex}",
+        )
+        viewed = sdk_client.get_observation(accepted.observation_id)
+        assert viewed.observation_id == accepted.observation_id
+        assert viewed.statement == "Slept 8 hours"
+        listed = sdk_client.list_observations()
+        assert any(item.observation_id == accepted.observation_id for item in listed.items)
+
 
 class TestSdkAudits:
     def test_get_audit(self, sdk_client: IntelligenceMaxxxingClient) -> None:
@@ -145,7 +170,11 @@ class TestSdkAudits:
 
 class TestSdkResilience:
     def test_unreachable_engine_is_typed(self) -> None:
-        client = IntelligenceMaxxxingClient(base_url="http://127.0.0.1:1", timeout_seconds=0.2)
+        client = IntelligenceMaxxxingClient(
+            base_url="http://127.0.0.1:1",
+            credential_secret="imx_sk_deadbeefdeadbeefdeadbeeFx",
+            timeout_seconds=0.2,
+        )
         with pytest.raises(EngineUnavailableError):
             client.health()
         client.close()

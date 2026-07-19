@@ -24,6 +24,13 @@ class EngineSettings(BaseSettings):
     )
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
 
+    # Migration safety (all default to safe/off). See MIGRATION_SAFETY.md.
+    engine_destructive_migrations_allowed: bool = Field(
+        default=False, alias="ENGINE_DESTRUCTIVE_MIGRATIONS_ALLOWED"
+    )
+    engine_maintenance_mode: bool = Field(default=False, alias="ENGINE_MAINTENANCE_MODE")
+    engine_confirmed_backup_id: str | None = Field(default=None, alias="ENGINE_CONFIRMED_BACKUP_ID")
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> EngineSettings:

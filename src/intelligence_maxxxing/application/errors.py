@@ -18,6 +18,80 @@ class IdempotencyConflictError(ApplicationError):
 
 
 class AuditNotFoundError(ApplicationError):
-    """The requested audit record does not exist."""
+    """The requested audit record does not exist (within the caller's scope)."""
 
     code = "AUDIT_NOT_FOUND"
+
+
+class ObservationNotFoundError(ApplicationError):
+    """The requested observation does not exist (within the caller's scope)."""
+
+    code = "OBSERVATION_NOT_FOUND"
+
+
+class AuthenticationError(ApplicationError):
+    """The request could not be authenticated (missing/invalid/revoked/expired
+    credential, or disabled application). Maps to HTTP 401."""
+
+    code = "AUTHENTICATION_REQUIRED"
+
+
+class PermissionDeniedError(ApplicationError):
+    """Authenticated, but the application lacks the required scope or tried to
+    access another owner's data. Maps to HTTP 403."""
+
+    code = "PERMISSION_DENIED"
+
+
+class ConcurrencyConflictError(ApplicationError):
+    """Optimistic concurrency violation on an aggregate version."""
+
+    code = "CONCURRENCY_CONFLICT"
+
+
+class IdempotencyRaceDetected(ApplicationError):
+    """Internal signal: a concurrent request with the same idempotency scope
+    committed first. Resolved deterministically by the use case; never
+    surfaced to clients."""
+
+    code = "IDEMPOTENCY_RACE"
+
+
+class UnregisteredEventTypeError(ApplicationError):
+    """Event type + schema version is not declared in the event catalog."""
+
+    code = "UNREGISTERED_EVENT_TYPE"
+
+
+class EventPayloadInvalidError(ApplicationError):
+    """Event payload does not match the catalog schema for its type/version."""
+
+    code = "EVENT_PAYLOAD_INVALID"
+
+
+class IntegrityViolationError(ApplicationError):
+    """The event integrity chain is broken: alteration or corruption detected."""
+
+    code = "INTEGRITY_VIOLATION"
+
+
+class IdentityError(ApplicationError):
+    """Identity administration failed (unknown application, duplicate, ...)."""
+
+    code = "IDENTITY_ERROR"
+
+
+class MigrationBlockedError(ApplicationError):
+    """A destructive migration was blocked by the safety policy."""
+
+    code = "MIGRATION_BLOCKED"
+
+
+class UnknownProjectionEventError(ApplicationError):
+    """The projector met an event type it does not know how to apply.
+
+    Policy: STOP (fail closed). The checkpoint is marked QUARANTINED and the
+    projection does not silently skip history.
+    """
+
+    code = "UNKNOWN_PROJECTION_EVENT"

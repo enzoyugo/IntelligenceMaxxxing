@@ -44,6 +44,9 @@ def create_app(settings: EngineSettings | None = None) -> FastAPI:
     register_middleware(app)
     register_error_handlers(app)
 
+    # Public liveness/readiness (no auth, no sensitive detail).
+    app.include_router(health.public_router, tags=["health"])
+
     api_v1 = APIRouter(prefix=API_PREFIX)
     api_v1.include_router(health.router, tags=["health"])
     api_v1.include_router(observations.router, tags=["observations"])

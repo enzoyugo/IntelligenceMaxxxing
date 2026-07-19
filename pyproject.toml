@@ -55,7 +55,10 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
+addopts = "-q -m \"not postgres\""
+markers = [
+    "postgres: real PostgreSQL gates (run via scripts/audit/run_postgres_gates.ps1)",
+]
 filterwarnings = ["error::DeprecationWarning:intelligence_maxxxing.*"]
 
 [tool.importlinter]

@@ -71,13 +71,20 @@ class SourceType(StrEnum):
 
 
 class ActorType(StrEnum):
-    """Who performed an action against the Engine."""
+    """Who performed an action against the Engine.
+
+    HUMAN/APPLICATION/SERVICE/AI_AGENT/SYSTEM are the canonical Stage 1 types.
+    ENGINE and LLM remain for backward compatibility with Stage 0 events
+    (LLM is a specialization of AI_AGENT; ENGINE of SERVICE).
+    """
 
     HUMAN = "HUMAN"
     APPLICATION = "APPLICATION"
+    SERVICE = "SERVICE"
+    AI_AGENT = "AI_AGENT"
+    SYSTEM = "SYSTEM"
     ENGINE = "ENGINE"
     LLM = "LLM"
-    SYSTEM = "SYSTEM"
 
 
 class HypothesisStatus(StrEnum):

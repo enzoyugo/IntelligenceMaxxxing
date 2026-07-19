@@ -70,7 +70,12 @@ def test_llm_cannot_write_belief(app: FastAPI) -> None:
 
 
 def test_public_api_is_versioned(app: FastAPI) -> None:
+    # Public liveness/readiness probes are intentionally unversioned and
+    # unauthenticated (Stage 1 §14). Everything else must live under /api/v1.
+    allowed_unversioned = {"/health/live", "/health/ready", "/openapi.json", "/docs", "/redoc"}
     unversioned = [
-        route.path for route in _api_routes(app) if not route.path.startswith("/api/v1/")
+        route.path
+        for route in _api_routes(app)
+        if not route.path.startswith("/api/v1/") and route.path not in allowed_unversioned
     ]
-    assert not unversioned, f"all public endpoints must live under /api/v1: {unversioned}"
+    assert not unversioned, f"all public API endpoints must live under /api/v1: {unversioned}"

@@ -1,4 +1,6 @@
-"""Public contract for POST /api/v1/observations."""
+"""Public contracts for /api/v1/observations (write + read)."""
+
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -23,7 +25,11 @@ SUBMITTABLE_KNOWLEDGE_CLASSES = frozenset(
 
 
 class SubmitObservationRequest(BaseModel):
-    """Strict public schema. Unknown fields are rejected."""
+    """Strict public schema. Unknown fields are rejected.
+
+    Identity fields (owner, application, actor) are NEVER accepted from the
+    body: they come exclusively from the authenticated context.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
@@ -63,3 +69,39 @@ class ObservationAcceptedData(BaseModel):
     event_id: str
     audit_id: str
     replayed: bool = Field(description="True when returned from an idempotent retry")
+
+
+class ObservationView(BaseModel):
+    """Public view of one accepted observation (from the projection)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    observation_id: str
+    schema_version: str
+    domain_pack: str
+    subject: str
+    statement: str
+    knowledge_class: str
+    unknown_reason: str | None = None
+    observed_by: str
+    context: dict[str, Any]
+    source_ids: tuple[str, ...]
+    metadata: dict[str, Any]
+    occurred_at: str | None
+    created_at: str
+    audit_id: str
+    event_id: str
+    global_position: int
+
+
+class ObservationListData(BaseModel):
+    """Cursor-paginated list of accepted observations with projection freshness."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    items: tuple[ObservationView, ...]
+    next_cursor: int | None = None
+    projection_name: str
+    projection_version: str
+    projection_position: int | None = None
+    projection_updated_at: str | None = None

@@ -18,6 +18,12 @@ EVENT_PREFIX: Final = "evt"
 REQUEST_PREFIX: Final = "req"
 SOURCE_PREFIX: Final = "src"
 HUMAN_VALUE_PREFIX: Final = "val"
+APPLICATION_PREFIX: Final = "app"
+USER_PREFIX: Final = "usr"
+TENANT_PREFIX: Final = "tnt"
+SERVICE_PREFIX: Final = "svc"
+CREDENTIAL_PREFIX: Final = "cred"
+SNAPSHOT_PREFIX: Final = "hsnap"
 
 
 def new_id(prefix: str) -> str:

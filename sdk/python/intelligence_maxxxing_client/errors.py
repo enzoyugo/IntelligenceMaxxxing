@@ -40,3 +40,15 @@ class EngineConflictError(EngineAPIError):
 
 class EngineNotFoundError(EngineAPIError):
     """The requested resource does not exist (HTTP 404)."""
+
+
+class EngineUnauthorizedError(EngineAPIError):
+    """Authentication failed (HTTP 401)."""
+
+
+class EngineForbiddenError(EngineAPIError):
+    """Authenticated but not permitted (HTTP 403)."""
+
+
+class EngineServiceUnavailableError(EngineAPIError):
+    """Engine is not ready to serve traffic (HTTP 503)."""

@@ -10,7 +10,10 @@ from intelligence_maxxxing_client.errors import (
     EngineAPIError,
     EngineClientError,
     EngineConflictError,
+    EngineForbiddenError,
     EngineNotFoundError,
+    EngineServiceUnavailableError,
+    EngineUnauthorizedError,
     EngineUnavailableError,
     EngineValidationError,
 )
@@ -19,6 +22,8 @@ from intelligence_maxxxing_client.models import (
     EnvelopeMeta,
     HealthView,
     ObservationAcceptedView,
+    ObservationListView,
+    ObservationView,
 )
 
 __all__ = [
@@ -26,11 +31,16 @@ __all__ = [
     "EngineAPIError",
     "EngineClientError",
     "EngineConflictError",
+    "EngineForbiddenError",
     "EngineNotFoundError",
+    "EngineServiceUnavailableError",
+    "EngineUnauthorizedError",
     "EngineUnavailableError",
     "EngineValidationError",
     "EnvelopeMeta",
     "HealthView",
     "IntelligenceMaxxxingClient",
     "ObservationAcceptedView",
+    "ObservationListView",
+    "ObservationView",
 ]

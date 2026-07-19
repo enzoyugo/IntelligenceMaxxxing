@@ -1,12 +1,16 @@
-"""SQLAlchemy implementation of the append-only audit store."""
+"""SQLAlchemy implementation of the append-only audit store.
+
+Reads are owner-scoped: an application cannot retrieve another owner's audit
+by guessing its id.
+"""
 
 from datetime import UTC, datetime
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from intelligence_maxxxing.application.ports import AuditStorePort
 from intelligence_maxxxing.domain.audit.models import Actor, AuditRecord
-from intelligence_maxxxing.domain.common.base import MetadataValue
 from intelligence_maxxxing.domain.common.epistemic import ActorType
 from intelligence_maxxxing.infrastructure.database.tables import AuditRecordRow
 
@@ -17,10 +21,6 @@ def _as_utc(value: datetime) -> datetime:
 
 
 def _row_to_record(row: AuditRecordRow) -> AuditRecord:
-    health_state: dict[str, MetadataValue] = {
-        key: value if isinstance(value, str | int | float | bool) or value is None else str(value)
-        for key, value in row.health_state.items()
-    }
     return AuditRecord(
         audit_id=row.audit_id,
         request_id=row.request_id,
@@ -28,13 +28,16 @@ def _row_to_record(row: AuditRecordRow) -> AuditRecord:
         api_version=row.api_version,
         schema_version=row.schema_version,
         domain_pack=row.domain_pack,
+        tenant_id=row.tenant_id,
+        owner_id=row.owner_id,
+        application_id=row.application_id,
         actor=Actor(actor_type=ActorType(row.actor_type), actor_id=row.actor_id),
         action=row.action,
         input_object_ids=tuple(row.input_object_ids),
         output_object_ids=tuple(row.output_object_ids),
         event_ids=tuple(row.event_ids),
         timestamp=_as_utc(row.timestamp),
-        health_state=health_state,
+        health_state=dict(row.health_state),
     )
 
 
@@ -50,6 +53,9 @@ class SqlAlchemyAuditStore(AuditStorePort):
             api_version=record.api_version,
             schema_version=record.schema_version,
             domain_pack=record.domain_pack,
+            tenant_id=record.tenant_id,
+            owner_id=record.owner_id,
+            application_id=record.application_id,
             actor_type=record.actor.actor_type.value,
             actor_id=record.actor.actor_id,
             action=record.action,
@@ -61,6 +67,10 @@ class SqlAlchemyAuditStore(AuditStorePort):
         )
         self._session.add(row)
 
-    def get_by_audit_id(self, audit_id: str) -> AuditRecord | None:
-        row = self._session.get(AuditRecordRow, audit_id)
+    def get_by_audit_id(self, owner_id: str, audit_id: str) -> AuditRecord | None:
+        stmt = select(AuditRecordRow).where(
+            AuditRecordRow.audit_id == audit_id,
+            AuditRecordRow.owner_id == owner_id,
+        )
+        row = self._session.scalars(stmt).first()
         return _row_to_record(row) if row is not None else None

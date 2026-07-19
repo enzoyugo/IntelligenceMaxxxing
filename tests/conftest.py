@@ -1,8 +1,7 @@
 """Shared fixtures.
 
-Tests never require PostgreSQL, Docker or any external service. SQLite is
-used strictly as the test database (Technical Architecture §3: local SQLite
-is for tests only).
+SQLite is used for fast hermetic tests. PostgreSQL-specific suites live under
+tests/postgres and are gated by scripts/audit/run_postgres_gates.ps1.
 """
 
 from collections.abc import Iterator
@@ -15,6 +14,7 @@ from fastapi.testclient import TestClient
 from intelligence_maxxxing.api.app import create_app
 from intelligence_maxxxing.config import EngineSettings
 from intelligence_maxxxing.infrastructure.database import Base
+from tests.fixtures.identity import BootstrappedIdentity, bootstrap_test_identity
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -46,8 +46,14 @@ def app(sqlite_url: str) -> Iterator[FastAPI]:
 
 
 @pytest.fixture()
-def client(app: FastAPI) -> Iterator[TestClient]:
+def identity(app: FastAPI) -> BootstrappedIdentity:
+    return bootstrap_test_identity(app)
+
+
+@pytest.fixture()
+def client(app: FastAPI, identity: BootstrappedIdentity) -> Iterator[TestClient]:
     with TestClient(app, raise_server_exceptions=False) as test_client:
+        test_client.headers.update(identity.auth_header)
         yield test_client
 
 

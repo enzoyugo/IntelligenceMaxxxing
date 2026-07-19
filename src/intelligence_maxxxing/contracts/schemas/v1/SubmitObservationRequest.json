@@ -109,7 +109,7 @@
     }
   },
   "additionalProperties": false,
-  "description": "Strict public schema. Unknown fields are rejected.",
+  "description": "Strict public schema. Unknown fields are rejected.\n\nIdentity fields (owner, application, actor) are NEVER accepted from the\nbody: they come exclusively from the authenticated context.",
   "properties": {
     "context": {
       "$ref": "#/$defs/Context"

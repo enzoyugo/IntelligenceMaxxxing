@@ -16,7 +16,7 @@ def _submit(client: TestClient, payload: dict[str, object], key: str) -> object:
 
 
 class TestHealth:
-    def test_health_with_database(self, client: TestClient) -> None:
+    def test_authenticated_health_with_database(self, client: TestClient) -> None:
         response = client.get("/api/v1/health")
         assert response.status_code == 200
         body = response.json()
@@ -27,14 +27,22 @@ class TestHealth:
         assert body["meta"]["health"]["database"] == "HEALTHY"
         assert body["meta"]["request_id"].startswith("req_")
 
-    def test_health_without_database_reports_degradation(self, broken_db_app: object) -> None:
+    def test_live_remains_ok_when_database_unavailable(self, broken_db_app: object) -> None:
         with TestClient(broken_db_app, raise_server_exceptions=False) as client:  # type: ignore[arg-type]
-            response = client.get("/api/v1/health")
+            response = client.get("/health/live")
         assert response.status_code == 200
-        body = response.json()
-        assert body["ok"] is True
-        assert body["data"]["status"] == "UNHEALTHY"
-        assert body["meta"]["health"]["database"] == "UNHEALTHY"
+        assert response.json()["status"] == "ok"
+
+    def test_ready_fails_when_database_unavailable(self, broken_db_app: object) -> None:
+        with TestClient(broken_db_app, raise_server_exceptions=False) as client:  # type: ignore[arg-type]
+            response = client.get("/health/ready")
+        assert response.status_code == 503
+        assert response.json()["status"] == "not_ready"
+
+    def test_detailed_health_requires_auth(self, app: object) -> None:
+        with TestClient(app, raise_server_exceptions=False) as client:  # type: ignore[arg-type]
+            response = client.get("/api/v1/health")
+        assert response.status_code == 401
 
 
 class TestSubmitObservation:

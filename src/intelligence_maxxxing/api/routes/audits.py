@@ -1,19 +1,22 @@
-"""GET /api/v1/audits/{audit_id}: recoverable audit trail."""
+"""GET /api/v1/audits/{audit_id}: recoverable audit trail (owner-scoped)."""
 
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
 from intelligence_maxxxing.api.dependencies import (
+    AuthDep,
     get_app_settings,
     get_audit_use_case,
     get_request_id,
 )
 from intelligence_maxxxing.api.envelope import build_meta, success_envelope
+from intelligence_maxxxing.application.auth import require_scope
 from intelligence_maxxxing.application.use_cases import GetAuditUseCase
 from intelligence_maxxxing.config import EngineSettings
 from intelligence_maxxxing.contracts.api.audits import AuditRecordData, PublicEngineEvent
 from intelligence_maxxxing.contracts.api.envelope import ApiResponseEnvelope
+from intelligence_maxxxing.permissions import PermissionScope
 
 router = APIRouter()
 
@@ -21,11 +24,13 @@ router = APIRouter()
 @router.get("/audits/{audit_id}", response_model=ApiResponseEnvelope)
 def get_audit(
     audit_id: str,
+    auth: AuthDep,
     settings: Annotated[EngineSettings, Depends(get_app_settings)],
     use_case: Annotated[GetAuditUseCase, Depends(get_audit_use_case)],
     request_id: Annotated[str, Depends(get_request_id)],
 ) -> ApiResponseEnvelope:
-    bundle = use_case.execute(audit_id)
+    require_scope(auth, PermissionScope.READ_AUDIT)
+    bundle = use_case.execute(audit_id, auth)
     audit = bundle.audit
 
     data = AuditRecordData(

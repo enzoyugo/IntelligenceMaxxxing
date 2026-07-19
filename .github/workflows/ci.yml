@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: intelligence
+          POSTGRES_PASSWORD: intelligence
+          POSTGRES_DB: intelligence_maxxxing_stage1_gates
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U intelligence -d intelligence_maxxxing_stage1_gates"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package
+        run: python -m pip install -e ".[dev]"
+
+      - name: Ruff lint
+        run: python -m ruff check .
+
+      - name: Ruff format
+        run: python -m ruff format --check .
+
+      - name: Mypy
+        run: python -m mypy src sdk
+
+      - name: Import boundaries
+        run: lint-imports
+
+      - name: Constitution manifest
+        run: python -c "from pathlib import Path; from intelligence_maxxxing.governance.manifest import find_constitutional_dir, verify_manifest; r=verify_manifest(find_constitutional_dir(Path.cwd())); assert r.ok, r"
+
+      - name: Pytest (non-postgres)
+        run: python -m pytest -q
+
+      - name: Alembic upgrade from zero (PostgreSQL)
+        env:
+          DATABASE_URL: postgresql+psycopg://intelligence:intelligence@127.0.0.1:5432/intelligence_maxxxing_stage1_gates
+        run: python -m alembic upgrade head
+
+      - name: PostgreSQL gates
+        env:
+          DATABASE_URL: postgresql+psycopg://intelligence:intelligence@127.0.0.1:5432/intelligence_maxxxing_stage1_gates
+          ENGINE_RUN_POSTGRES_GATES: "1"
+        run: python -m pytest -q tests/postgres -m postgres
