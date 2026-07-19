@@ -23,7 +23,7 @@ Suggested intermediate commits (`LEDGER` / `PROJECTIONS` as separate SHAs) were 
 
 | Item | Status |
 | --- | --- |
-| Push status | PENDING_PUSH |
+| Push status | **PUSHED** (`origin/main` @ `7c6a8e8`) |
 | Working tree | clean after final commit |
 
 ## PostgreSQL verification
