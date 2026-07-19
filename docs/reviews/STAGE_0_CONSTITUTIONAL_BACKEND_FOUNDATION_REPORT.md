@@ -27,7 +27,13 @@ remote, so no push was possible.
 |---|---|---|
 | Baseline | `d43afe3` | `STAGE_0_BASELINE: freeze constitutional foundation` (8 docs + SHA-256 manifest) |
 | Implementation | `2a3c24f` | `STAGE_0_IMPLEMENTATION: constitutional backend skeleton and audited observation path` |
-| Report | *(this commit)* | `STAGE_0_REPORT: validation, traceability matrix and final report` — also contains one test-isolation fix (migration tests now clear an inherited `DATABASE_URL` env var) |
+| Report | `bb013a0` | `STAGE_0_REPORT: validation, traceability matrix and final report` — also contains one test-isolation fix (migration tests now clear an inherited `DATABASE_URL` env var) |
+| Report follow-up | `383ee95` | `.gitattributes`: frozen constitutional bytes protected from git end-of-line conversion |
+| Report follow-up | `7673a20` | frozen constitutional files renormalized so git stores them byte-verbatim (manifest re-verified intact) |
+
+The three planned commits exist as designed; the two follow-ups were required
+to guarantee that git can never silently alter the hashed constitutional bytes
+on a future checkout. The manifest verified intact before and after.
 
 ## Push status
 
