@@ -48,14 +48,26 @@ def compute_event_hash(event: EngineEvent, previous_event_hash: str | None) -> s
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
-def verify_chain(events: list[EngineEvent]) -> tuple[bool, str | None]:
+def verify_chain(
+    events: list[EngineEvent],
+    initial_previous_hash: str | None = None,
+) -> tuple[bool, str | None]:
     """Verify one stream's chain (events in ascending global order).
 
-    Returns (ok, first_broken_event_id). Legacy events with no hash are
-    tolerated only at the start of a stream, before the chain began.
+    Returns (ok, first_broken_event_id).
+
+    `initial_previous_hash` is the anchor that the FIRST event in ``events``
+    must chain onto. For a FULL verification of a whole stream it is None
+    (the chain has no predecessor). For an INCREMENTAL verification that starts
+    in the middle of a stream, it is the ``last_verified_hash`` of the trusted
+    checkpoint the range begins after; a legitimate anchor is NEVER mistaken
+    for corruption.
+
+    Legacy events with no hash are tolerated only at the very start of a
+    stream, before the chain began (and only when there is no anchor).
     """
-    previous_hash: str | None = None
-    chain_started = False
+    previous_hash: str | None = initial_previous_hash
+    chain_started = initial_previous_hash is not None
     for event in events:
         if event.event_hash is None:
             if chain_started:

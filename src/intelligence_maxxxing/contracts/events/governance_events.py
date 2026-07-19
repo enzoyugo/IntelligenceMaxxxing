@@ -39,3 +39,29 @@ class IntegrityViolationDetectedPayload(_EventPayload):
     stream_application_id: str = Field(min_length=1)
     broken_event_id: str = Field(min_length=1)
     detected_at: UtcDatetime
+
+
+class IntegrityStreamQuarantinedPayload(_EventPayload):
+    stream_tenant_id: str = Field(min_length=1)
+    stream_owner_id: str = Field(min_length=1)
+    stream_application_id: str = Field(min_length=1)
+    reason: str = Field(min_length=1)
+    broken_event_id: str = Field(min_length=1)
+    detected_at: UtcDatetime
+
+
+class IntegrityStreamVerifiedPayload(_EventPayload):
+    stream_tenant_id: str = Field(min_length=1)
+    stream_owner_id: str = Field(min_length=1)
+    stream_application_id: str = Field(min_length=1)
+    events_checked: int = Field(ge=0)
+    verified_at: UtcDatetime
+
+
+class IntegrityStreamReleasedPayload(_EventPayload):
+    stream_tenant_id: str = Field(min_length=1)
+    stream_owner_id: str = Field(min_length=1)
+    stream_application_id: str = Field(min_length=1)
+    reason: str = Field(min_length=1)
+    released_by: str = Field(min_length=1)
+    released_at: UtcDatetime

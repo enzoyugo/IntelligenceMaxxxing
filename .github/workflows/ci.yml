@@ -63,3 +63,13 @@ jobs:
           DATABASE_URL: postgresql+psycopg://intelligence:intelligence@127.0.0.1:5432/intelligence_maxxxing_stage1_gates
           ENGINE_RUN_POSTGRES_GATES: "1"
         run: python -m pytest -q tests/postgres -m postgres
+
+      # Stage 1.1: real multi-session concurrency + integrity gates. These
+      # exercise 20 concurrent same-stream appends (one valid chain), distinct
+      # streams, atomic head updates, quarantine rejection, full/incremental
+      # integrity agreement and non-destructive shadow verify. No SQLite fallback.
+      - name: Stage 1.1 concurrency + integrity gates (PostgreSQL)
+        env:
+          DATABASE_URL: postgresql+psycopg://intelligence:intelligence@127.0.0.1:5432/intelligence_maxxxing_stage1_gates
+          ENGINE_RUN_POSTGRES_GATES: "1"
+        run: python -m pytest -v tests/postgres/test_stage1_1_hardening.py -m postgres

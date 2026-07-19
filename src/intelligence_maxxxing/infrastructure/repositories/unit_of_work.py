@@ -20,6 +20,9 @@ from intelligence_maxxxing.infrastructure.repositories.idempotency import (
 from intelligence_maxxxing.infrastructure.repositories.identity import (
     SqlAlchemyIdentityStore,
 )
+from intelligence_maxxxing.infrastructure.repositories.integrity import (
+    SqlAlchemyIntegrityStore,
+)
 from intelligence_maxxxing.infrastructure.repositories.projections import (
     SqlAlchemyProjectionStore,
 )
@@ -37,6 +40,7 @@ class SqlAlchemyUnitOfWork(UnitOfWorkPort):
         self.idempotency = SqlAlchemyIdempotencyStore(self._session)
         self.identity = SqlAlchemyIdentityStore(self._session)
         self.projections = SqlAlchemyProjectionStore(self._session)
+        self.integrity = SqlAlchemyIntegrityStore(self._session)
         return self
 
     def __exit__(

@@ -20,6 +20,9 @@ from intelligence_maxxxing.application.errors import (
 )
 from intelligence_maxxxing.contracts.events.governance_events import (
     IntegrityCheckCompletedPayload,
+    IntegrityStreamQuarantinedPayload,
+    IntegrityStreamReleasedPayload,
+    IntegrityStreamVerifiedPayload,
     IntegrityViolationDetectedPayload,
     ProjectionCheckpointCreatedPayload,
     ProjectionRebuiltPayload,
@@ -162,6 +165,27 @@ _SPECS: Final[tuple[EventTypeSpec, ...]] = (
         "IntegrityCheck",
         IntegrityViolationDetectedPayload,
         "integrity.verify",
+        sensitivity=EventSensitivity.HIGH,
+    ),
+    _spec(
+        "IntegrityStreamQuarantined",
+        "IntegrityStream",
+        IntegrityStreamQuarantinedPayload,
+        "integrity.verify",
+        sensitivity=EventSensitivity.HIGH,
+    ),
+    _spec(
+        "IntegrityStreamVerified",
+        "IntegrityStream",
+        IntegrityStreamVerifiedPayload,
+        "integrity.verify_stream",
+        sensitivity=EventSensitivity.MEDIUM,
+    ),
+    _spec(
+        "IntegrityStreamReleased",
+        "IntegrityStream",
+        IntegrityStreamReleasedPayload,
+        "integrity.unquarantine_stream",
         sensitivity=EventSensitivity.HIGH,
     ),
 )

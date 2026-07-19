@@ -95,3 +95,25 @@ class UnknownProjectionEventError(ApplicationError):
     """
 
     code = "UNKNOWN_PROJECTION_EVENT"
+
+
+class StreamQuarantinedError(ApplicationError):
+    """The (tenant, owner, application) integrity stream is QUARANTINED after a
+    detected chain break. All new writes to it are rejected until an operator
+    releases it through the governed admin CLI. Maps to HTTP 409 (a durable
+    state conflict, not a transient outage)."""
+
+    code = "STREAM_QUARANTINED"
+
+
+class StreamNotFoundError(ApplicationError):
+    """No integrity stream head exists for the requested scope."""
+
+    code = "STREAM_NOT_FOUND"
+
+
+class StreamReleaseBlockedError(ApplicationError):
+    """A quarantined stream cannot be released: full verification still fails
+    (or the required authorization/repair was not provided)."""
+
+    code = "STREAM_RELEASE_BLOCKED"

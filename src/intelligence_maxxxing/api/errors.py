@@ -15,6 +15,7 @@ from intelligence_maxxxing.application.errors import (
     IdempotencyConflictError,
     ObservationNotFoundError,
     PermissionDeniedError,
+    StreamQuarantinedError,
 )
 from intelligence_maxxxing.observability import get_logger
 
@@ -26,6 +27,9 @@ _STATUS_BY_ERROR: dict[type[ApplicationError], int] = {
     ObservationNotFoundError: status.HTTP_404_NOT_FOUND,
     AuthenticationError: status.HTTP_401_UNAUTHORIZED,
     PermissionDeniedError: status.HTTP_403_FORBIDDEN,
+    # A quarantined stream is a durable state conflict (needs a governed
+    # release), not a transient outage: 409, consistent across the API.
+    StreamQuarantinedError: status.HTTP_409_CONFLICT,
 }
 
 

@@ -100,6 +100,23 @@ def main(argv: list[str] | None = None) -> int:
         help="Resume from checkpoint instead of rebuilding from scratch",
     )
 
+    sub.add_parser(
+        "verify-projections",
+        help="Non-destructively verify accepted_observations against the ledger",
+    )
+
+    for name, help_text in (
+        ("inspect-stream", "Show a stream head and its integrity checkpoint"),
+        ("verify-stream", "Run a FULL integrity verification of one stream"),
+        ("unquarantine-stream", "Release a quarantined stream (ADMINISTER_ENGINE)"),
+    ):
+        p_stream = sub.add_parser(name, help=help_text)
+        p_stream.add_argument("--tenant-id", required=True)
+        p_stream.add_argument("--owner-id", required=True)
+        p_stream.add_argument("--application-id", required=True)
+        if name == "unquarantine-stream":
+            p_stream.add_argument("--reason", required=True)
+
     args = parser.parse_args(argv)
     identity, projections, integrity = _build_services()
 
@@ -170,6 +187,61 @@ def main(argv: list[str] | None = None) -> int:
             f"position={result.last_global_position} checksum={result.checksum}"
         )
         return 0
+
+    if args.command == "verify-projections":
+        verify_report = projections.verify()
+        print(
+            f"projection={verify_report.projection_name} matches={verify_report.matches} "
+            f"quarantined={verify_report.quarantined} live_rows={verify_report.live_rows} "
+            f"shadow_rows={verify_report.shadow_rows} "
+            f"live_checksum={verify_report.live_checksum} "
+            f"shadow_checksum={verify_report.shadow_checksum}"
+        )
+        return 0 if verify_report.ok else 2
+
+    if args.command == "inspect-stream":
+        head, checkpoint = integrity.inspect_stream(
+            args.tenant_id, args.owner_id, args.application_id
+        )
+        if head is None:
+            print("stream not found")
+            return 2
+        print(
+            f"status={head.status} stream_version={head.stream_version} "
+            f"last_event_id={head.last_event_id} head_hash={head.current_event_hash}"
+        )
+        if head.status == "QUARANTINED":
+            print(
+                f"quarantine_reason={head.quarantine_reason} "
+                f"broken_event_id={head.broken_event_id} "
+                f"quarantined_at={head.quarantined_at}"
+            )
+        if checkpoint is not None:
+            print(
+                f"checkpoint_position={checkpoint.last_verified_global_position} "
+                f"checkpoint_hash={checkpoint.last_verified_hash}"
+            )
+        return 0
+
+    if args.command == "verify-stream":
+        stream_result = integrity.verify_stream(args.tenant_id, args.owner_id, args.application_id)
+        print(
+            f"ok={stream_result.ok} events_checked={stream_result.events_checked} "
+            f"broken_event_id={stream_result.broken_event_id}"
+        )
+        return 0 if stream_result.ok else 2
+
+    if args.command == "unquarantine-stream":
+        released = integrity.unquarantine_stream(
+            args.tenant_id,
+            args.owner_id,
+            args.application_id,
+            reason=args.reason,
+            admin_actor_id="constitutional-owner",
+            actor_scopes=frozenset({PermissionScope.ADMINISTER_ENGINE.value}),
+        )
+        print(f"released={released.ok} events_checked={released.events_checked}")
+        return 0 if released.ok else 2
 
     parser.error(f"unknown command {args.command}")
     return 2

@@ -44,5 +44,18 @@ python -m pytest -q tests/postgres -m postgres
 if ($LASTEXITCODE -ne 0) { Fail "PostgreSQL test suite failed" }
 Write-Host "GATE PASSED: postgres tests"
 
+# --- Stage 1.1 hardening gates: real multi-session concurrency, no SQLite ----
+# These MUST run against real PostgreSQL. They measure:
+#   * 20 concurrent distinct events on the SAME stream form ONE valid chain
+#   * 20 concurrent events on DISTINCT streams do not block globally
+#   * atomic stream-head updates / failed appends do not advance the head
+#   * quarantine rejects appends
+#   * full + incremental integrity agree
+#   * non-destructive shadow projection verify
+Write-Host "==> Running Stage 1.1 multi-session concurrency + integrity gates..."
+python -m pytest -v tests/postgres/test_stage1_1_hardening.py -m postgres
+if ($LASTEXITCODE -ne 0) { Fail "Stage 1.1 concurrency / integrity gates failed on real PostgreSQL" }
+Write-Host "GATE PASSED: Stage 1.1 hardening (20 concurrent same-stream chain, distinct streams, quarantine, full/incremental integrity, shadow verify)"
+
 Write-Host "ALL POSTGRES QUALITY GATES PASSED" -ForegroundColor Green
 exit 0
