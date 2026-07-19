@@ -1,0 +1,1378 @@
+BLOQUE A — ENGINE_GOVERNANCE.md
+Autoridad y propiedad
+1.
+
+¿Quién será inicialmente la autoridad máxima del proyecto?
+
+Mi propuesta: vos como Constitutional Owner, con capacidad exclusiva de aprobar enmiendas y promociones críticas.
+
+RP:De acuerdo
+
+2.
+
+¿Querés distinguir roles aunque al comienzo todos los ocupes vos?
+
+Propuesta:
+
+Constitutional Owner.
+Engine Maintainer.
+Domain Pack Owner.
+Research Reviewer.
+Production Approver.
+Data Owner.
+Application Owner.
+
+RP:De acuerdo
+
+3.
+
+¿Una misma persona podrá proponer, validar y aprobar un cambio crítico, o debe existir separación de funciones cuando el proyecto crezca?
+
+RP: Separacion a futuro
+
+4.
+
+¿Los agentes de IA podrán aprobar algo por sí mismos o solamente proponer, ejecutar pruebas y emitir recomendaciones?
+
+Mi recomendación: nunca tendrán autoridad final constitucional ni de producción.
+
+RP:De acuerdo
+
+Cambios y enmiendas
+5.
+
+¿Qué cambios requieren una enmienda constitucional?
+
+Por ejemplo:
+
+cambiar el orden de autoridad;
+reducir control humano;
+cambiar derechos sobre los datos;
+eliminar trazabilidad;
+modificar prohibiciones absolutas.
+
+RP:Todos esos
+
+6.
+
+¿Qué cláusulas deberían ser absolutamente protegidas y requerir una “refundación” del proyecto para modificarse?
+
+Mi propuesta:
+
+no inventar evidencia;
+trazabilidad;
+control humano;
+propiedad de datos;
+separación entre decisión y outcome;
+obligación de aprender;
+derecho a auditar;
+Engine independiente de las aplicaciones.
+
+RP: De acuerdo
+
+7.
+
+¿Toda modificación constitucional debe incluir obligatoriamente:
+
+motivo;
+evidencia;
+riesgos;
+impacto por dominio;
+versión anterior;
+aprobación explícita;
+fecha de entrada en vigencia?
+
+RP:De acuerdo y un documento de "Cambios constitucionales"
+
+8.
+
+¿Querés permitir cambios de emergencia?
+
+Ejemplo: se descubre una vulnerabilidad grave y debe suspenderse una función antes de completar todo el proceso.
+
+RP:De acuerdo
+
+9.
+
+En una emergencia, ¿qué puede hacerse?
+
+Mi propuesta: suspender, bloquear o degradar capacidades; nunca promover nuevas capacidades sin validación.
+
+RP:De acuerdo
+
+Promoción de métodos
+10.
+
+¿Aceptamos estos estados universales?
+
+IDEA
+EXPERIMENTAL
+SANDBOX
+SHADOW
+CANDIDATE
+APPROVED
+ACTIVE
+DEGRADED
+SUSPENDED
+RETIRED
+
+RP:De acuerdo
+
+11.
+
+¿Qué requisitos mínimos debe cumplir un método para pasar de SHADOW a ACTIVE?
+
+Mi propuesta:
+
+mejora real frente al baseline;
+estabilidad temporal;
+ausencia de leakage;
+reproducibilidad;
+calibración;
+tests constitucionales;
+riesgo controlado;
+aprobación humana.
+
+RP:De acuerdo
+
+12.
+
+¿Una mejora de rendimiento es suficiente o también debe demostrar que no empeora:
+
+explicabilidad;
+estabilidad;
+riesgo;
+latencia;
+privacidad;
+mantenimiento?
+
+RP:Demostrar que no empeora nada
+
+13.
+
+¿El Engine debe conservar siempre el método anterior durante un periodo de comparación posterior a la promoción?
+
+RP:De acuerdo
+
+14.
+
+¿Toda promoción debe tener rollback automático o alcanza con rollback manual?
+
+Mi recomendación: automático para degradación clara y manual para casos ambiguos.
+
+RP:De acuerdo
+
+15.
+
+¿Quién define los thresholds de promoción?
+
+Constitución.
+Governance.
+Domain Pack.
+Usuario.
+Combinación.
+
+RP: Una combinacion 
+
+Incidentes y degradación
+16.
+
+¿Todo error importante debe generar un postmortem?
+
+RP:100% De acuerdo
+
+17.
+
+¿Querés clasificar incidentes por severidad?
+
+Propuesta:
+
+SEV-0: daño crítico o pérdida de control
+SEV-1: decisión material incorrecta
+SEV-2: degradación significativa
+SEV-3: error limitado sin impacto material
+SEV-4: anomalía informativa
+
+RP:De acuerdo
+
+18.
+
+¿Qué situaciones deben activar automáticamente un kill switch?
+
+Por ejemplo:
+
+evidencia inventada;
+datos contaminados;
+ejecución fuera de permisos;
+pérdida de calibración;
+cambio silencioso de métricas;
+imposibilidad de auditar.
+
+RP: todas
+
+19.
+
+¿Al degradarse un método debe:
+
+reducir confianza;
+volver a shadow;
+dejar de recomendar;
+dejar de ejecutar;
+conservar observación?
+
+RP: Volver a shadow e investigarse
+
+20.
+
+¿El Engine puede seguir funcionando parcialmente cuando un módulo está degradado?
+
+Mi recomendación: sí, mediante aislamiento y estados explícitos de salud.
+
+RP:De acuerdo
+
+Auditoría
+21.
+
+¿Cuánto tiempo deben conservarse decisiones, evidencia y outcomes?
+
+Mi recomendación: indefinidamente para objetos de conocimiento; políticas específicas para datos personales sensibles.
+
+RP:De acuerdo
+
+22.
+
+¿Toda recomendación debe poder reconstruirse exactamente con:
+
+versión del modelo;
+versión del Domain Pack;
+datos usados;
+timestamp;
+parámetros;
+reglas;
+valores humanos;
+contexto?
+
+RP:De acuerdo, un documento con esa info
+
+23.
+
+¿El Engine debe producir periódicamente un reporte de autoevaluación?
+
+Ejemplo:
+
+calibración;
+recomendaciones correctas e incorrectas;
+degradación;
+confianza excesiva;
+oportunidades perdidas;
+desacuerdos humanos;
+aprendizajes.
+
+RP:De acuerdo
+
+24.
+
+¿Con qué frecuencia debería revisarse formalmente la gobernanza?
+
+mensual;
+trimestral;
+semestral;
+por milestone.
+
+RP: Semestral
+
+BLOQUE B — EPISTEMIC_STANDARD.md
+Tipos de conocimiento
+25.
+
+¿Aceptamos que todos los objetos de conocimiento tengan una clasificación obligatoria?
+
+OBSERVED_FACT
+DERIVED_FACT
+INFERENCE
+HYPOTHESIS
+EXPERIMENTAL_RESULT
+SUPPORTED_CONCLUSION
+OPERATIONAL_BELIEF
+HUMAN_VALUE
+UNKNOWN
+
+RP:De acuerdo
+
+26.
+
+¿Necesitamos distinguir entre:
+
+desconocido porque faltan datos;
+desconocido porque los datos se contradicen;
+desconocido porque no puede medirse;
+desconocido por aleatoriedad inherente?
+
+RP:De acuerdo
+
+27.
+
+¿Una afirmación puede tener varias clasificaciones según el contexto?
+
+Ejemplo: una conclusión universal puede ser solo una hipótesis para una persona concreta.
+
+RP:De acuerdo
+
+Confianza
+28.
+
+¿Cómo querés representar confianza?
+
+porcentaje;
+rango;
+categorías;
+combinación.
+
+Mi recomendación:
+
+probabilidad estimada + intervalo + etiqueta + calibración histórica
+
+RP:De acuerdo
+
+29.
+
+¿La confianza deberá separar:
+
+confianza en los datos;
+confianza en el método;
+confianza en la conclusión;
+confianza en la recomendación?
+
+Mi recomendación: sí. Un solo número puede ocultar demasiado.
+
+RP:De acuerdo
+
+30.
+
+¿Aceptamos etiquetas universales?
+
+VERY_LOW
+LOW
+MODERATE
+HIGH
+VERY_HIGH
+
+Pero siempre acompañadas de valores numéricos y explicación.
+
+RP:De acuerdo
+
+31.
+
+¿Un 80% debe tener el mismo significado en todos los dominios?
+
+Por tus respuestas anteriores, entiendo que no. ¿Formalizamos una calibración específica por Domain Pack?
+
+RP: Exactamente, calibracion por domain pack
+
+32.
+
+¿El Engine puede emitir probabilidades muy altas, como 99%, o debería restringirlas cuando exista riesgo de eventos extremos no modelados?
+
+RP: Si teniendo en cuenta el randomness tiene un 99% como resultado, mostrar el mismo
+
+Fuentes y evidencia
+33.
+
+¿Querés una jerarquía inicial de fuentes?
+
+Propuesta:
+
+medición primaria directa;
+dataset primario auditado;
+experimento reproducible;
+fuente oficial independiente;
+fuente secundaria confiable;
+observación humana;
+inferencia de modelo;
+dato no verificado.
+
+RP:De acuerdo
+
+34.
+
+¿Una observación humana puede considerarse evidencia?
+
+Mi propuesta: sí, pero indicando subjetividad, contexto y posible sesgo.
+
+RP:De acuerdo
+
+35.
+
+¿Cómo tratamos datos ingresados manualmente por el usuario?
+
+confiables por defecto;
+confiables con advertencia;
+pendientes de validación;
+depende del tipo de dato.
+
+RP: Depende del tipo de dato
+
+36.
+
+¿Cuándo un dato se considera viejo o stale?
+
+¿Debe definirlo cada Domain Pack?
+
+Ejemplo: un precio puede envejecer en segundos; una preferencia personal puede durar años.
+
+RP: Depndiendo del domain pack
+
+37.
+
+¿Los datos recientes deben pesar más automáticamente o solo cuando el dominio demuestra que existe decay temporal?
+
+RP: solo cuando haya unn decay temporal, ejemplo: Resultados de ult 3 partidos es mas clave que del 2018
+
+38.
+
+¿El Engine debe medir dependencia entre fuentes para evitar contar la misma evidencia varias veces?
+
+RP: De acuerdo
+
+Causalidad
+39.
+
+¿Qué estándar mínimo exigimos para afirmar causalidad?
+
+Mi propuesta: nunca usar lenguaje causal únicamente por correlación, salvo que exista:
+
+experimento;
+diseño cuasi-experimental;
+mecanismo defendible;
+controles adecuados;
+replicación.
+
+RP: De acuerdo
+
+40.
+
+¿Querés niveles de causalidad?
+
+CORRELATION
+PLAUSIBLE_CAUSAL_LINK
+CAUSAL_EVIDENCE
+REPLICATED_CAUSAL_EVIDENCE
+
+RP: De acuerdo
+
+41.
+
+¿El Engine podrá recomendar basándose en correlaciones útiles aunque no exista causalidad confirmada, siempre que lo declare?
+
+RP: De acuerdo
+
+Experimentación y estadística
+42.
+
+¿Cada Domain Pack podrá definir su tamaño mínimo de muestra o querés reglas globales?
+
+RP: Cada domain pack. Perfeccionarlos en su rubro
+
+43.
+
+¿El Engine debe corregir automáticamente por múltiples pruebas, data mining y selección post hoc?
+
+RP: De acuerdo
+
+44.
+
+¿Una hipótesis generada después de observar el resultado deberá quedar marcada como post hoc y requerir validación nueva?
+
+RP:De acuerdo
+
+45.
+
+¿Aceptamos que los resultados in-sample jamás puedan considerarse prueba final?
+
+RP:Dependiendo del domain pack
+
+46.
+
+¿Todo experimento relevante debe definir antes de ejecutarse:
+
+hipótesis;
+outcome;
+métricas;
+población;
+duración;
+criterios de éxito;
+criterios de abandono?
+
+RP:De acuerdo
+
+47.
+
+¿El Engine podrá detener un experimento antes de tiempo?
+
+Casos:
+
+daño;
+futilidad;
+evidencia excepcional;
+contaminación;
+costo excesivo.
+
+RP:De acuerdo
+
+Humanidad y valores
+48.
+
+¿Cómo se ingresarán los valores humanos?
+
+configuración permanente;
+preguntas por decisión;
+aprendizaje histórico;
+combinación.
+
+RP: Una combinacion, importante que vaya aprendiendo de tus imputs
+
+49.
+
+¿El Engine puede inferir valores personales observando decisiones pasadas?
+
+Mi recomendación: puede sugerirlos, pero el usuario debe confirmarlos antes de que tengan autoridad.
+
+RP: Sugerirlos siempre
+
+50.
+
+¿Los sentimientos deben tratarse como ruido o como datos reales del dominio Life?
+
+Mi recomendación: como datos reales, aunque subjetivos y difíciles de medir.
+
+RP: Datos reales "inferibles" pero no repetibles. Para el life pack importantisimo
+
+51.
+
+¿El Engine debe distinguir entre:
+
+lo que el usuario dice valorar;
+lo que sus decisiones muestran que valora;
+lo que probablemente le convendría valorar?
+
+RP: Si pero no por atras, mostrar todas las contradicciones para que el usuario pueda aprender
+
+BLOQUE C — DOMAIN_PACK_STANDARD.md
+Identidad del pack
+52.
+
+¿Cada Domain Pack debe tener un manifiesto propio o alcanza con una especificación técnica?
+
+Mi recomendación: una breve carta de propósito y límites.
+
+RP: De acuerdo
+
+53.
+
+¿Cada pack deberá declarar obligatoriamente:
+
+problema;
+usuarios;
+datos;
+decisiones;
+outcomes;
+riesgos;
+autonomía máxima;
+métricas;
+límites;
+relaciones con otros packs?
+
+RP:De acuerdo
+
+54.
+
+¿Quién podrá crear un Domain Pack?
+
+solamente el Core Team;
+colaboradores aprobados;
+cualquier desarrollador bajo certificación.
+
+RP: Por ahora solo yo
+
+55.
+
+¿Querés que existan Domain Packs oficiales y experimentales?
+
+RP:De acuerdo, recomendar domain packs
+
+Fronteras del pack
+56.
+
+¿Qué debe permanecer siempre en el Core y nunca duplicarse en un Domain Pack?
+
+Mi propuesta:
+
+identidad;
+timestamps;
+evidencia;
+hipótesis;
+creencias;
+decisiones;
+outcomes;
+auditoría;
+permisos;
+aprendizaje;
+versionado.
+
+RP:De acuerdo
+
+57.
+
+¿Qué puede personalizar un Domain Pack?
+
+vocabulario;
+fuentes;
+features;
+experimentos;
+métricas;
+modelos;
+riesgos;
+calibración;
+acciones.
+
+RP:De acuerdo
+
+58.
+
+¿Un Domain Pack puede depender de otro?
+
+Ejemplo: Sports Betting depende de Sports Data y Financial Risk.
+
+Mi recomendación: sí, mediante contratos explícitos, nunca importaciones ocultas.
+
+RP:De acuerdo
+
+59.
+
+¿Un pack puede modificar objetos de otro pack o solamente publicar evidencia para que el coordinador cross-domain la utilice?
+
+Mi recomendación: no modificar directamente.
+
+RP:De acuerdo
+
+Contrato mínimo
+60.
+
+¿Aceptamos que todo pack implemente estas capacidades mínimas?
+
+observe()
+normalize()
+validate()
+generate_hypotheses()
+design_experiment()
+evaluate_evidence()
+calibrate_confidence()
+recommend()
+evaluate_outcome()
+learn()
+health_check()
+
+RP:De acuerdo
+
+61.
+
+¿Todo pack debe publicar esquemas versionados para sus observaciones y outcomes?
+
+RP:De acuerdo
+
+62.
+
+¿Todo pack debe incluir datos sintéticos o fixtures para probarse sin conectarse a sistemas reales?
+
+RP:De acuerdo
+
+63.
+
+¿Todo pack debe poder operar en sandbox sin acceso a producción?
+
+RP:De acuerdo
+
+64.
+
+¿Todo pack debe declarar qué ocurre cuando faltan datos?
+
+bloquear;
+degradar confianza;
+usar proxies;
+solicitar input humano;
+continuar parcialmente.
+
+RP:Solicitar input humano
+
+Riesgo y autonomía
+65.
+
+¿Cada pack tendrá un risk_class?
+
+Propuesta:
+
+LOW
+MODERATE
+HIGH
+CRITICAL
+
+RP:De acuerdo
+
+66.
+
+¿Cada acción del pack debe declarar:
+
+impacto máximo;
+reversibilidad;
+costo;
+personas afectadas;
+autorización necesaria;
+rollback?
+
+RP:De acuerdo
+
+67.
+
+¿Cuál debe ser la autonomía máxima inicial?
+
+Mi recomendación:
+
+Trading: observar y recomendar; paper execution autorizada.
+Betting: observar y recomendar; nunca apostar dinero inicialmente.
+Life: recomendar y preparar acciones; automatizar solo tareas reversibles.
+Business: recomendar y preparar; ejecutar acciones administrativas preautorizadas.
+
+RP: Si, por ahora si, cuando vaya perfeccionando vamos cambiando
+
+Admisión y retiro
+68.
+
+¿Quién decide que existe una necesidad suficientemente alta para crear un nuevo pack?
+
+RP: Por ahora yo
+
+69.
+
+¿Un pack debe demostrar un MVP manual antes de entrar al Engine?
+
+RP:De acuerdo
+
+70.
+
+¿Qué motivos justifican retirar un pack?
+
+no aporta valor;
+datos insuficientes;
+riesgo excesivo;
+mantenimiento desproporcionado;
+viola la Constitución;
+duplicación.
+
+RP: No aporta valor
+
+71.
+
+Cuando un pack se retira, ¿sus datos y aprendizajes quedan archivados y consultables?
+
+RP: De acuerdo
+
+Coordinación entre dominios
+72.
+
+¿Querés un componente formal llamado Cross-Domain Coordinator?
+
+Este no tomaría decisiones por su cuenta; detectaría conflictos y construiría trade-offs globales.
+
+RP:De acuerdo
+
+73.
+
+¿Los pesos entre dominios deben ser permanentes o variar por decisión?
+
+Ejemplo: salud puede pesar más ante una urgencia, dinero más ante una crisis financiera.
+
+RP:De acuerdoDe acuerdoDe acuerdoDe acuerdo
+
+74.
+
+¿El usuario podrá establecer límites no negociables?
+
+Ejemplo:
+
+mínimo de horas de sueño;
+capital máximo en riesgo;
+tiempo máximo de trabajo;
+prohibición de apostar dinero real.
+
+RP:De acuerdo
+
+75.
+
+¿Los packs podrán cuestionar recomendaciones de otros packs?
+
+Ejemplo: Health Pack objeta una recomendación de Financial Pack.
+
+RP:De acuerdo, que todos esten escuchando
+
+BLOQUE D — ENGINE_SERVICE_CONTRACT.md
+
+Este documento será clave por tu decisión de separar el Engine como backend.
+
+Relación con las aplicaciones
+76.
+
+¿Confirmamos esta regla?
+
+Las aplicaciones nunca llaman directamente a módulos internos. Solo consumen contratos públicos del Engine.
+
+RP: De acuerdo
+
+77.
+
+¿Confirmamos que cada aplicación mantiene su propio frontend y experiencia de usuario?
+
+TradingMaxxxing UI.
+LifeMaxxxing UI.
+Betting Bot UI.
+Futuras aplicaciones.
+
+RP: De acuerdo
+
+78.
+
+¿El Engine tendrá una consola administrativa propia solamente para auditoría, salud, experimentos y gobernanza?
+
+Mi recomendación: sí, pero no como producto principal.
+
+RP:De acuerdo
+
+79.
+
+¿Las aplicaciones podrán funcionar parcialmente cuando el Engine esté desconectado?
+
+Ejemplo: LifeMaxxxing abre calendario y tareas, pero no genera inteligencia nueva.
+
+RP:De acuerdo, guardar la info en el frontend para mandar al backend cuando se vuelva a conectar
+
+80.
+
+¿Cada aplicación debe tener un adaptador propio?
+
+TradingMaxxxingAdapter
+LifeMaxxxingAdapter
+BettingBotAdapter
+
+RP: De acuerdo
+
+81.
+
+¿El adaptador vive dentro del repositorio de la aplicación o dentro del repositorio del Engine?
+
+Mi recomendación:
+
+contrato y SDK en el Engine;
+implementación específica cerca de cada aplicación;
+tests de compatibilidad en ambos lados.
+ 
+RP: De acuerdo
+
+Tipos de comunicación
+82.
+
+¿Las consultas interactivas usarán API síncrona?
+
+Ejemplo: “dame la recomendación actual”.
+
+RP: De acuerdo
+
+83.
+
+¿Los procesos largos usarán jobs asíncronos?
+
+Ejemplo: backtests, simulaciones, análisis históricos y generación de hipótesis.
+
+RP: De acuerdo
+
+84.
+
+¿Las aplicaciones podrán enviar eventos continuamente?
+
+Ejemplo:
+
+WorkoutCompleted
+TradeClosed
+BetResolved
+DecisionTaken
+SleepRecorded
+
+RP: De acuerdo
+
+85.
+
+¿Querés que el Engine pueda publicar eventos de vuelta?
+
+Ejemplo:
+
+BeliefUpdated
+RecommendationReady
+RiskDetected
+ExperimentCompleted
+HumanReviewRequired
+
+RP: De acuerdo
+ 
+86.
+
+¿Preferís comenzar con REST + eventos internos y dejar gRPC para más adelante?
+
+Mi recomendación: sí.
+
+RP: De acuerdo
+
+Lectura, escritura y ejecución
+87.
+
+¿Confirmamos tres permisos separados?
+
+READ_INTELLIGENCE
+SUBMIT_EVIDENCE
+EXECUTE_ACTION
+
+RP: De acuerdo
+
+88.
+
+¿Una aplicación podrá modificar una conclusión o solo enviar nueva evidencia que provoque una actualización?
+
+Mi recomendación: nunca modificar conclusiones directamente.
+
+RP: De acuerdo
+ 
+89.
+
+¿Una aplicación podrá borrar objetos del Engine o solamente solicitar archivado/eliminación mediante un proceso gobernado?
+
+RP: Solicitar mediante un proceso gobernado
+
+90.
+
+¿Toda acción ejecutable debe requerir un token de autorización específico para:
+
+aplicación;
+usuario;
+acción;
+monto o impacto máximo;
+duración;
+Domain Pack?
+
+RP:De acuerdo
+
+Contratos y compatibilidad
+91.
+
+¿Cómo versionaremos la API?
+
+Mi recomendación:
+
+/api/v1/
+
+y versionado separado de schemas y Domain Packs.
+
+RP:De acuerdo
+
+92.
+
+¿Una actualización podrá romper contratos existentes?
+
+Mi recomendación: no dentro de una misma versión mayor.
+
+RP:De acuerdo
+
+93.
+
+¿Cuánto tiempo deberá mantenerse una versión anterior antes de retirarla?
+
+RP: 1 mes?
+
+94.
+
+¿Cada respuesta debe incluir metadatos como:
+
+request ID;
+versión del Engine;
+versión del pack;
+timestamp;
+freshness;
+confianza;
+estado de salud;
+trazabilidad?
+
+RP:De acuerdo
+
+95.
+
+¿Las recomendaciones deben devolverse siempre con una explicación resumida y un enlace o ID hacia la auditoría completa?
+
+RP:De acuerdo
+
+96.
+
+¿Las aplicaciones podrán elegir el nivel de detalle?
+
+Ejemplo:
+
+summary
+standard
+full_audit
+
+RP:De acuerdo
+
+BLOQUE E — TECHNICAL_ARCHITECTURE.md
+Forma inicial del backend
+97.
+
+¿Aceptamos empezar como un modular monolith?
+
+Un solo backend desplegable, pero con módulos internos estrictamente separados.
+
+Mi recomendación: sí. Evita la complejidad prematura de microservicios sin renunciar a separarlos después.
+
+RP:De acuerdo
+
+98.
+
+¿En qué lenguaje querés construir el Core?
+
+Mi recomendación inicial: Python por la sinergia con datos, ML, simulación, FastAPI y TradingMaxxxing.
+
+RP:De acuerdo
+
+99.
+
+¿FastAPI te parece correcto como primera capa pública?
+
+RP:De acuerdo
+
+100.
+
+¿Querés que el Engine sea completamente independiente de los stacks frontend actuales?
+
+Mi recomendación: sí. React, Expo u otra UI no deben importar al Core.
+
+RP:De acuerdo
+
+Despliegue
+101.
+
+¿El Engine correrá inicialmente:
+
+en tu PC;
+en un servidor local;
+en un VPS;
+híbrido?
+
+RP: Estaría bueno correr en un server de render si se puede para que siempre este prendido
+
+102.
+
+¿Querés una arquitectura local-first pero con acceso remoto seguro mediante VPN?
+
+Esto encaja con tu uso actual de Tailscale.
+
+RP: De acuerdo
+
+103.
+
+¿Cada usuario tendrá una instancia propia del Engine o imaginás una plataforma multiusuario en el futuro?
+
+Podemos iniciar single-user y diseñar aislamiento desde el comienzo.
+
+RP:De acuerdo
+
+104.
+
+¿LifeMaxxxing debe consultar siempre tu instancia privada, mientras otros packs podrían usar infraestructura compartida?
+
+RP:De acuerdo
+
+105.
+
+¿El Engine debe seguir procesando trabajos aunque ninguna aplicación esté abierta?
+
+RP: De acuerdo
+
+Datos
+106.
+
+¿Aceptamos una separación de almacenamiento?
+
+PostgreSQL o SQLite inicial para estado estructurado.
+Event store append-only para historia.
+almacenamiento de archivos para datasets y reportes.
+índice vectorial solo cuando aporte valor.
+grafo de conocimiento más adelante, no desde el día uno.
+
+RP:De acuerdo
+
+107.
+
+¿Preferís SQLite al inicio para velocidad de desarrollo o PostgreSQL desde el comienzo para evitar una migración posterior?
+
+Mi recomendación: PostgreSQL para el Engine central; SQLite solo para pruebas/local edge.
+
+RP:De acuerdo
+
+108.
+
+¿Todo evento relevante debe ser append-only?
+
+RP:De acuerdo
+
+109.
+
+¿Las conclusiones actuales serán vistas materializadas derivadas del historial, en lugar de reemplazar la historia?
+
+RP:De acuerdo
+
+110.
+
+¿Las aplicaciones pueden conservar cachés locales de recomendaciones?
+
+RP:De acuerdo
+
+111.
+
+¿Cuánto tiempo puede considerarse válida una recomendación cacheada cuando el Engine está caído?
+
+Debe definirlo cada Domain Pack.
+
+RP:De acuerdo
+
+Seguridad
+112.
+
+¿Cómo se autenticarán las aplicaciones inicialmente?
+
+API keys.
+OAuth.
+tokens firmados.
+red privada.
+combinación.
+
+RP:combinacion
+
+113.
+
+¿Cada aplicación tendrá permisos diferentes?
+
+Ejemplo: LifeMaxxxing no puede acceder a evidencia privada de TradingMaxxxing salvo autorización explícita.
+
+RP:De acuerdo
+
+114.
+
+¿Querés aislamiento lógico fuerte entre memorias personales, universales y de dominio?
+
+RP:De acuerdo
+
+115.
+
+¿Los datos sensibles deben cifrarse en reposo además de en tránsito?
+
+RP:De acuerdo
+
+116.
+
+¿Las credenciales de fuentes externas deben permanecer fuera de los Domain Packs y gestionarse mediante un secret manager?
+
+RP:De acuerdo
+
+117.
+
+¿Toda lectura de datos personales sensibles debe quedar auditada?
+
+RP:De acuerdo
+
+Operación y resiliencia
+118.
+
+¿Qué pasa cuando el Engine no responde?
+
+Mi propuesta para las aplicaciones:
+
+mostrar último estado válido;
+marcarlo como stale;
+no inventar una nueva respuesta;
+mantener funciones locales;
+reintentar sin duplicar trabajos;
+bloquear ejecución crítica.
+
+RP:De acuerdo
+
+119.
+
+¿Necesitamos alta disponibilidad desde el inicio o alcanza con recuperación clara, backups y reinicio automático?
+
+Mi recomendación: recuperación sólida primero; alta disponibilidad después.
+
+RP:
+De acuerdo
+120.
+
+¿Con qué frecuencia deben hacerse backups?
+
+RP: weekly
+
+121.
+
+¿Querés definir objetivos iniciales de recuperación?
+
+RPO: cuánto dato podemos perder.
+RTO: cuánto tiempo puede estar fuera.
+
+RP:De acuerdo
+
+122.
+
+¿Cada job debe ser idempotente para que reintentarlo no duplique experimentos, outcomes o decisiones?
+
+RP:De acuerdo
+
+123.
+
+¿Los trabajos largos deben poder pausarse, cancelarse y reanudarse?
+
+RP:De acuerdo
+
+124.
+
+¿Querés límites de recursos para impedir que una investigación deje sin servicio a todas las aplicaciones?
+
+RP:De acuerdo
+
+Modelos e IA
+125.
+
+¿El Core debe ser independiente del proveedor de IA?
+
+Mi recomendación: sí. Ningún modelo específico debe formar parte de la identidad del Engine.
+
+RP:De acuerdo
+
+126.
+
+¿Los LLM se usarán principalmente para:
+
+generar hipótesis;
+traducir lenguaje;
+explicar;
+planificar experimentos;
+encontrar relaciones;
+
+pero nunca como fuente final de evidencia?
+
+RP:De acuerdo
+
+127.
+
+¿Cada output de un modelo debe quedar registrado con:
+
+proveedor;
+modelo;
+prompt;
+parámetros;
+versión;
+evidencias disponibles;
+fecha?
+
+RP:De acuerdo
+
+128.
+
+¿Querés priorizar modelos locales cuando haya información personal?
+
+RP:si
+
+129.
+
+¿Un LLM puede actualizar una creencia directamente o debe producir una propuesta evaluada por el Belief Engine?
+
+Mi recomendación: nunca directamente.
+
+RP:De acuerdo
+
+Integración inicial
+130.
+
+¿Cuál debería ser la primera integración real?
+
+Mi recomendación: TradingMaxxxing, porque ya tiene evidencia estructurada y permitirá validar el contrato técnico.
+
+RP: Creo que LifeMaxxxing, ya que tradingmaxxxing ya tiene su engine de investigacion
+
+131.
+
+¿Cuál debería ser la segunda?
+
+Mi recomendación: LifeMaxxxing, porque probará que el Core es verdaderamente multidominio.
+
+RP:  Tradingmaxxxing
+
+132.
+
+¿El bot de apuestas entra tercero, una vez validada la universalidad del loop?
+
+RP:De acuerdo
+
+133.
+
+¿Las primeras integraciones deben ser estrictamente read-only?
+
+RP:De acuerdo
+
+134.
+
+¿Cuál sería el primer caso vertical del Engine?
+
+Mi propuesta:
+
+Recibir observaciones, registrar una hipótesis, adjuntar evidencia, crear una creencia, emitir una recomendación, registrar la decisión humana, recibir el outcome y actualizar el aprendizaje.
+
+RP:De acuerdo
+
+BLOQUE F — NOMBRE Y ORGANIZACIÓN DEL PROYECTO
+135.
+
+¿Intelligence Engine será el nombre definitivo o un nombre provisional?
+
+RP: Provisional
+
+136.
+
+¿El repositorio debería llamarse:
+
+intelligence-engine
+
+o preferís mantener la estética:
+
+IntelligenceMaxxxing
+ResearchMaxxxing
+DecisionMaxxxing
+
+RP: Me gusta mantener el maxxxing, es mi chiste interno
+
+137.
+
+¿Querés que los proyectos actuales mantengan completamente sus nombres e identidades?
+
+Mi recomendación: sí. El Engine es infraestructura compartida, no una marca que deba reemplazarlos.
+
+RP:De acuerdo
+
+138.
+
+¿Querés que todo el proyecto arranque en inglés internamente —código, schemas y estados— pero con documentación fundacional en español?
+
+Mi recomendación: código y contratos en inglés; Constitución en español con futura traducción oficial.
+
+RP: De acuerdo
