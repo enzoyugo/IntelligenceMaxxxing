@@ -5,7 +5,10 @@ Core (`intelligence_maxxxing`); that boundary is protected by import-linter
 and constitutional tests.
 """
 
-from intelligence_maxxxing_client.client import IntelligenceMaxxxingClient
+from intelligence_maxxxing_client.client import (
+    IntelligenceMaxxxingClient,
+    new_idempotency_key,
+)
 from intelligence_maxxxing_client.errors import (
     EngineAPIError,
     EngineClientError,
@@ -43,4 +46,5 @@ __all__ = [
     "ObservationAcceptedView",
     "ObservationListView",
     "ObservationView",
+    "new_idempotency_key",
 ]

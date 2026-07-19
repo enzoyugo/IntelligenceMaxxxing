@@ -1,0 +1,37 @@
+# Standalone distribution for the public IntelligenceMaxxxing client.
+#
+# This project is intentionally SEPARATE from the Engine root pyproject.toml.
+# Building from this directory produces a wheel that contains ONLY the
+# `intelligence_maxxxing_client` package and depends ONLY on httpx + pydantic.
+# It never ships the Engine Core (`intelligence_maxxxing`), FastAPI, SQLAlchemy,
+# Alembic or psycopg, so an external client (e.g. the LifeMaxxxing backend) can
+# install it into a clean virtualenv without pulling in any server code.
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "intelligence-maxxxing-client"
+version = "0.1.0"
+description = "Standalone public HTTP client for the IntelligenceMaxxxing Engine API v1"
+readme = "README.md"
+# Client only: keep the floor low so external apps are not forced onto 3.12.
+requires-python = ">=3.10"
+license = { text = "Proprietary" }
+dependencies = [
+    "httpx>=0.27",
+    "pydantic>=2.7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+# Only the client package. The Engine Core lives under the repo `src/` tree,
+# not under this directory, so it can never be discovered from here; `tests`
+# is excluded so it is not vendored into the wheel.
+include = ["intelligence_maxxxing_client*"]
+exclude = ["tests*"]

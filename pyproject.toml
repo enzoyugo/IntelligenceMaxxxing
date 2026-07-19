@@ -27,6 +27,9 @@ dev = [
     "ruff>=0.5",
     "mypy>=1.10",
     "import-linter>=2.0",
+    "build>=1.2",
+    "setuptools>=69",
+    "wheel>=0.43",
 ]
 
 [tool.setuptools.packages.find]
