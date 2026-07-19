@@ -1,0 +1,29 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "constitution_version": {
+      "title": "Constitution Version",
+      "type": "string"
+    },
+    "engine_version": {
+      "title": "Engine Version",
+      "type": "string"
+    },
+    "service": {
+      "title": "Service",
+      "type": "string"
+    },
+    "status": {
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "status",
+    "service",
+    "engine_version",
+    "constitution_version"
+  ],
+  "title": "HealthData",
+  "type": "object"
+}

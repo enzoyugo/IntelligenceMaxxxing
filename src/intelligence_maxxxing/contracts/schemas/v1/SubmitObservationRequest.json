@@ -1,0 +1,213 @@
+{
+  "$defs": {
+    "Context": {
+      "additionalProperties": false,
+      "description": "Mandatory context and scope for knowledge objects (Epistemic Standard \u00a72).\n\nDesigned single-user first but with explicit user/tenant boundaries so a\nmultiuser future does not require a rewrite (Technical Architecture \u00a77).",
+      "properties": {
+        "attributes": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": "Attributes",
+          "type": "object"
+        },
+        "environment": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Environment"
+        },
+        "schema_version": {
+          "default": "1.0",
+          "pattern": "^\\d+\\.\\d+$",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "scope": {
+          "description": "Scope in which the assertion applies",
+          "minLength": 1,
+          "title": "Scope",
+          "type": "string"
+        },
+        "tenant_id": {
+          "default": "primary",
+          "minLength": 1,
+          "title": "Tenant Id",
+          "type": "string"
+        },
+        "user_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "User Id"
+        }
+      },
+      "required": [
+        "scope"
+      ],
+      "title": "Context",
+      "type": "object"
+    },
+    "KnowledgeClass": {
+      "description": "Mandatory primary class for every knowledge object (Epistemic Standard \u00a72).",
+      "enum": [
+        "OBSERVED_FACT",
+        "DERIVED_FACT",
+        "INFERENCE",
+        "HYPOTHESIS",
+        "EXPERIMENTAL_RESULT",
+        "SUPPORTED_CONCLUSION",
+        "OPERATIONAL_BELIEF",
+        "HUMAN_VALUE",
+        "UNKNOWN"
+      ],
+      "title": "KnowledgeClass",
+      "type": "string"
+    },
+    "UnknownReason": {
+      "description": "Mandatory reason whenever knowledge_class is UNKNOWN (Epistemic Standard \u00a73).",
+      "enum": [
+        "MISSING_DATA",
+        "CONTRADICTORY_DATA",
+        "NOT_MEASURABLE_DIRECTLY",
+        "INHERENT_RANDOMNESS",
+        "METHOD_LIMITATION",
+        "OUT_OF_DISTRIBUTION",
+        "STALE_EVIDENCE",
+        "INSUFFICIENT_POWER"
+      ],
+      "title": "UnknownReason",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Strict public schema. Unknown fields are rejected.",
+  "properties": {
+    "context": {
+      "$ref": "#/$defs/Context"
+    },
+    "domain_pack": {
+      "default": "core",
+      "minLength": 1,
+      "title": "Domain Pack",
+      "type": "string"
+    },
+    "knowledge_class": {
+      "$ref": "#/$defs/KnowledgeClass"
+    },
+    "metadata": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "integer"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "title": "Metadata",
+      "type": "object"
+    },
+    "observed_by": {
+      "minLength": 1,
+      "title": "Observed By",
+      "type": "string"
+    },
+    "occurred_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Occurred At"
+    },
+    "schema_version": {
+      "description": "Canonical schema version, e.g. '1.0'",
+      "pattern": "^\\d+\\.\\d+$",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source_ids": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Source Ids",
+      "type": "array"
+    },
+    "statement": {
+      "minLength": 1,
+      "title": "Statement",
+      "type": "string"
+    },
+    "subject": {
+      "minLength": 1,
+      "title": "Subject",
+      "type": "string"
+    },
+    "unknown_reason": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/UnknownReason"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "schema_version",
+    "subject",
+    "statement",
+    "knowledge_class",
+    "observed_by",
+    "context"
+  ],
+  "title": "SubmitObservationRequest",
+  "type": "object"
+}

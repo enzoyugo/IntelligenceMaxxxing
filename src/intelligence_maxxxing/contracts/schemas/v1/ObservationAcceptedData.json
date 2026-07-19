@@ -1,0 +1,31 @@
+{
+  "additionalProperties": false,
+  "description": "Data section of a successful submission response.",
+  "properties": {
+    "audit_id": {
+      "title": "Audit Id",
+      "type": "string"
+    },
+    "event_id": {
+      "title": "Event Id",
+      "type": "string"
+    },
+    "observation_id": {
+      "title": "Observation Id",
+      "type": "string"
+    },
+    "replayed": {
+      "description": "True when returned from an idempotent retry",
+      "title": "Replayed",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "observation_id",
+    "event_id",
+    "audit_id",
+    "replayed"
+  ],
+  "title": "ObservationAcceptedData",
+  "type": "object"
+}

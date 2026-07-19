@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: intelligence_maxxxing_postgres
+    environment:
+      POSTGRES_USER: intelligence
+      POSTGRES_PASSWORD: intelligence
+      POSTGRES_DB: intelligence_maxxxing
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - intelligence_maxxxing_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U intelligence -d intelligence_maxxxing"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  intelligence_maxxxing_pgdata:
