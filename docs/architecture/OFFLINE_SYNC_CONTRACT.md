@@ -1,9 +1,12 @@
 # OFFLINE SYNC CONTRACT
 
-**Status:** Technical contract (Stage 0: CONTRACT_ONLY)
+**Status:** Technical contract (Stage 1: server-side IMPLEMENTED; client queue CONTRACT_ONLY)
 **Parent authority:** Constitution v1.1 (Art. 43-A), Engine Service Contract v1.0 (§9, §11)
-**Implementation status:** The server-side idempotency guarantees are implemented in Stage 0.
-The client-side offline queue is NOT implemented and belongs to each application (first: LifeMaxxxing, Stage 3).
+**Implementation status:** Server-side idempotency guarantees are implemented through Stage 1.
+Stage 1 scopes idempotency by **`application_id` + `owner_id` + `action` + `idempotency_key`**
+(composite unique constraint `uq_idempotency_scope_key`). The same key reused by a different
+application or owner is a distinct idempotency scope. The client-side offline queue is NOT
+implemented and belongs to each application (Stage 3).
 
 ---
 
@@ -48,18 +51,26 @@ IN_FLIGHT -> PENDING               (network failure: retry later, same key)
 - `CONFLICT` and `REJECTED` entries are never silently dropped or mutated;
   they require explicit handling (new logical event = new key).
 
-## 4. Engine-side guarantees (implemented in Stage 0)
+## 4. Engine-side guarantees (implemented in Stage 1)
 
 1. **Safe retry:** the same `Idempotency-Key` with a byte-equivalent payload
    returns the original result (`replayed: true`, HTTP 200). No new
    observation, event, or audit record is created.
 2. **Conflict detection:** the same key with a different payload returns
    HTTP 409 with error code `IDEMPOTENCY_CONFLICT` and creates nothing.
-3. **No duplication:** uniqueness is enforced in the database
-   (`uq_idempotency_scope_key`, `uq_engine_events_idempotency_scope_key`),
+3. **Composite scope (Stage 1):** idempotency is keyed by
+   `(application_id, owner_id, action, idempotency_key)` where `action` is
+   the internal use-case action (e.g. `observations.submit`). The authenticated
+   application's `owner_id` and `application_id` define the scope — not the
+   request body. Two different applications may reuse the same idempotency key
+   string without conflict.
+4. **No duplication:** uniqueness is enforced in the database
+   (`uq_idempotency_scope_key` on `idempotency_keys`;
+   `uq_engine_events_idempotency_scope_key` on `engine_events`),
    not only in application code.
-4. **Auditability:** every accepted write returns an `audit_id` recoverable
-   through `GET /api/v1/audits/{audit_id}`.
+5. **Auditability:** every accepted write returns an `audit_id` recoverable
+   through `GET /api/v1/audits/{audit_id}` (requires `READ_AUDIT` scope and
+   valid Bearer credential).
 
 ## 5. Offline behavior rules (for future application adapters)
 
@@ -73,9 +84,9 @@ While the Engine is unreachable, applications must:
 - replay the queue in `created_at` order on reconnection, one logical event
   at a time, honoring the state machine in §3.
 
-## 6. Deferred (not in Stage 0)
+## 6. Deferred (not in Stage 1)
 
-- The LifeMaxxxing local queue implementation (Stage 3).
+- Application local queue implementations (Stage 3).
 - Batch sync endpoint.
 - Server-side per-application sync cursors.
 - Push notifications of Engine events back to applications.
