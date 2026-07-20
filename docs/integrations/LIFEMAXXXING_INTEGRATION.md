@@ -73,3 +73,15 @@ canaries (sync, replay, minimization, audits, typed errors, cross-app
 isolation), 6 offline canaries (Engine down), and a secret scan of the
 LifeMaxxxing repo. Optionally set `LIFEMAXXXING_ROOT` if the Life repo is not at
 its default location.
+
+## Stage 3 — first epistemic loop
+
+LifeMaxxxing may also propose/activate the shadow template
+`life.sleep_threshold_productivity.v1` and evaluate experiments through the BFF.
+Additional scopes: `SUBMIT_HYPOTHESIS`, `READ_HYPOTHESIS`, `MANAGE_EXPERIMENT`,
+`READ_BELIEF`, `READ_LEARNING`. SDK `0.2.0` adds typed epistemic client methods.
+Beliefs remain correlation-only and `UNCALIBRATED`.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\audit\run_stage3_epistemic_gates.ps1
+```

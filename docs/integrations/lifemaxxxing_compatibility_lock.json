@@ -1,22 +1,35 @@
 {
-  "lock_version": 1,
-  "certified_at": "2026-07-19",
+  "lock_version": 2,
+  "certified_at": "2026-07-20",
   "engine": {
     "api_version": "v1",
     "engine_version": "0.1.0",
-    "observation_schema_version": "1.0"
+    "observation_schema_version": "1.0",
+    "epistemic_template": "life.sleep_threshold_productivity.v1",
+    "analysis_method": "BayesianBootstrapDifferenceInMeans.v1",
+    "migration": "0004_stage3"
   },
   "sdk": {
     "package": "intelligence-maxxxing-client",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "python_requires": ">=3.10",
-    "dependencies": ["httpx>=0.27", "pydantic>=2.7"]
+    "dependencies": ["httpx>=0.27", "pydantic>=2.7"],
+    "numpy": "server-side-only"
   },
   "application": {
     "display_name": "LifeMaxxxing",
     "domain_pack": "life",
     "observed_by": "lifemaxxxing-backend",
-    "scopes": ["SUBMIT_OBSERVATION", "READ_AUDIT", "READ_INTELLIGENCE"]
+    "scopes": [
+      "SUBMIT_OBSERVATION",
+      "READ_AUDIT",
+      "READ_INTELLIGENCE",
+      "SUBMIT_HYPOTHESIS",
+      "READ_HYPOTHESIS",
+      "MANAGE_EXPERIMENT",
+      "READ_BELIEF",
+      "READ_LEARNING"
+    ]
   },
   "event_types": {
     "life.daily_check_in.completed.v1": {
@@ -43,17 +56,29 @@
   "life_backend_endpoints": [
     "GET /api/intelligence/status",
     "POST /api/intelligence/observations/sync",
-    "GET /api/intelligence/audits/{audit_id}"
+    "GET /api/intelligence/audits/{audit_id}",
+    "GET /api/intelligence/hypotheses",
+    "POST /api/intelligence/hypotheses/sleep-productivity",
+    "GET /api/intelligence/hypotheses/{id}",
+    "POST /api/intelligence/hypotheses/{id}/activate",
+    "POST /api/intelligence/hypotheses/{id}/retire",
+    "POST /api/intelligence/experiments/{id}/evaluate",
+    "GET /api/intelligence/experiments/{id}/progress",
+    "GET /api/intelligence/hypotheses/{id}/belief",
+    "GET /api/intelligence/hypotheses/{id}/learning"
   ],
   "life_backend_error_codes": [
     "unknown_event_type", "engine_validation", "engine_conflict",
     "engine_not_found", "engine_auth", "engine_unavailable",
     "engine_unreachable", "engine_disabled", "engine_not_configured",
-    "engine_error"
+    "engine_error", "invalid_parameters"
   ],
   "gates": {
-    "cross_repo": "scripts/audit/run_lifemaxxxing_contract_gates.ps1",
+    "stage3_epistemic": "scripts/audit/run_stage3_epistemic_gates.ps1",
+    "cross_repo_stage2": "scripts/audit/run_lifemaxxxing_contract_gates.ps1",
     "sdk_build": "scripts/sdk/build_client_sdk.ps1",
-    "sdk_certification": "scripts/sdk/test_client_sdk.ps1"
+    "sdk_certification": "scripts/sdk/test_client_sdk.ps1",
+    "rebuild_epistemic": "scripts/projections/rebuild_epistemic.ps1",
+    "verify_epistemic": "scripts/projections/verify_epistemic.ps1"
   }
 }
