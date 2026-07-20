@@ -408,6 +408,12 @@ class _EpistemicState:
             event_id=event.event_id,
             global_position=event.global_position,
             updated_at=event.occurred_at,
+            # Activation anchors are frozen on live activate; rebuild falls back
+            # to the ExperimentRegistered position/time until HypothesisActivated
+            # linkage is reconstructed.
+            activation_event_id=event.event_id,
+            activation_global_position=event.global_position,
+            activation_recorded_at=event.occurred_at,
         )
         self.progress[eid] = ProjectedExperimentProgress(
             experiment_id=eid,

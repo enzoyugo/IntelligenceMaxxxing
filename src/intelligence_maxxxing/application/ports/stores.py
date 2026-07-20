@@ -424,6 +424,9 @@ class ProjectedExperiment(BaseModel):
     event_id: str
     global_position: int
     updated_at: datetime
+    activation_event_id: str | None = None
+    activation_global_position: int | None = None
+    activation_recorded_at: datetime | None = None
 
 
 class ProjectedBeliefSnapshot(BaseModel):
@@ -487,6 +490,17 @@ class ProjectedEvidenceSnapshot(BaseModel):
     audit_id: str
     event_id: str
     global_position: int
+    evidence_fingerprint: str | None = None
+    evidence_cutoff_global_position: int | None = None
+    evidence_cutoff_recorded_at: datetime | None = None
+    evaluation_started_at: datetime | None = None
+    evaluation_kind: str | None = None
+    terminal: bool = False
+    terminal_reason: str | None = None
+    critical_data_quality_failure: bool = False
+    source_count: int = 0
+    first_source_global_position: int | None = None
+    last_source_global_position: int | None = None
 
 
 class ProjectedExperimentProgress(BaseModel):
@@ -511,6 +525,16 @@ class ProjectedExperimentProgress(BaseModel):
     current_belief_state: str | None = None
     last_evaluated_at: datetime | None = None
     updated_at: datetime
+    target_remaining: int | None = None
+    sufficient_remaining: int | None = None
+    below_remaining: int | None = None
+    future_excluded: int = 0
+    duplicate_source_excluded: int = 0
+    critical_data_quality_failure: bool = False
+    evaluation_kind: str | None = None
+    terminal: bool = False
+    terminal_reason: str | None = None
+    minimum_group_size: int | None = None
 
 
 class ProjectedLearningRecord(BaseModel):
@@ -591,6 +615,16 @@ class EpistemicStorePort(ABC):
     @abstractmethod
     def get_evidence_snapshot(
         self, owner_id: str, application_id: str, evidence_id: str
+    ) -> ProjectedEvidenceSnapshot | None: ...
+
+    @abstractmethod
+    def get_evidence_by_fingerprint(
+        self,
+        owner_id: str,
+        application_id: str,
+        experiment_id: str,
+        phase: str,
+        evidence_fingerprint: str,
     ) -> ProjectedEvidenceSnapshot | None: ...
 
     @abstractmethod

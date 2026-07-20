@@ -192,6 +192,16 @@ class ExperimentProgressView(BaseModel):
     current_belief_state: str | None = None
     last_evaluated_at: str | None = None
     updated_at: str
+    target_remaining: int | None = None
+    sufficient_remaining: int | None = None
+    below_remaining: int | None = None
+    future_excluded: int = 0
+    duplicate_source_excluded: int = 0
+    critical_data_quality_failure: bool = False
+    evaluation_kind: str | None = None
+    terminal: bool = False
+    terminal_reason: str | None = None
+    minimum_group_size: int | None = None
 
 
 class EvaluateExperimentResult(BaseModel):
@@ -204,6 +214,19 @@ class EvaluateExperimentResult(BaseModel):
     event_id: str
     audit_id: str
     replayed: bool
+    evaluation_kind: str | None = None
+    terminal: bool = False
+    terminal_reason: str | None = None
+    prospective_eligible: int = 0
+    prospective_target: int = 0
+    target_remaining: int = 0
+    sufficient_count: int = 0
+    below_count: int = 0
+    sufficient_remaining: int = 0
+    below_remaining: int = 0
+    future_excluded: int = 0
+    duplicate_source_excluded: int = 0
+    critical_data_quality_failure: bool = False
     meta: EnvelopeMeta
 
 

@@ -60,6 +60,11 @@ def get_experiment(
         pre_registered_at=row.pre_registered_at.isoformat(),
         audit_id=row.audit_id,
         event_id=row.event_id,
+        activation_event_id=row.activation_event_id,
+        activation_global_position=row.activation_global_position,
+        activation_recorded_at=(
+            row.activation_recorded_at.isoformat() if row.activation_recorded_at else None
+        ),
     )
     meta = build_meta(
         request_id=request_id,
@@ -95,6 +100,16 @@ def get_experiment_progress(
         current_belief_state=row.current_belief_state,
         last_evaluated_at=row.last_evaluated_at.isoformat() if row.last_evaluated_at else None,
         updated_at=row.updated_at.isoformat(),
+        target_remaining=row.target_remaining,
+        sufficient_remaining=row.sufficient_remaining,
+        below_remaining=row.below_remaining,
+        future_excluded=row.future_excluded,
+        duplicate_source_excluded=row.duplicate_source_excluded,
+        critical_data_quality_failure=row.critical_data_quality_failure,
+        evaluation_kind=row.evaluation_kind,
+        terminal=row.terminal,
+        terminal_reason=row.terminal_reason,
+        minimum_group_size=row.minimum_group_size,
     )
     meta = build_meta(
         request_id=request_id,

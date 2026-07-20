@@ -117,6 +117,9 @@ class SqlAlchemyEpistemicStore(EpistemicStorePort):
         existing.event_id = row.event_id
         existing.global_position = row.global_position
         existing.updated_at = row.updated_at
+        existing.activation_event_id = row.activation_event_id
+        existing.activation_global_position = row.activation_global_position
+        existing.activation_recorded_at = row.activation_recorded_at
 
     def get_experiment(
         self, owner_id: str, application_id: str, experiment_id: str
@@ -247,6 +250,17 @@ class SqlAlchemyEpistemicStore(EpistemicStorePort):
         existing.audit_id = row.audit_id
         existing.event_id = row.event_id
         existing.global_position = row.global_position
+        existing.evidence_fingerprint = row.evidence_fingerprint
+        existing.evidence_cutoff_global_position = row.evidence_cutoff_global_position
+        existing.evidence_cutoff_recorded_at = row.evidence_cutoff_recorded_at
+        existing.evaluation_started_at = row.evaluation_started_at
+        existing.evaluation_kind = row.evaluation_kind
+        existing.terminal = 1 if row.terminal else 0
+        existing.terminal_reason = row.terminal_reason
+        existing.critical_data_quality_failure = 1 if row.critical_data_quality_failure else 0
+        existing.source_count = row.source_count
+        existing.first_source_global_position = row.first_source_global_position
+        existing.last_source_global_position = row.last_source_global_position
 
     def get_evidence_snapshot(
         self, owner_id: str, application_id: str, evidence_id: str
@@ -255,6 +269,24 @@ class SqlAlchemyEpistemicStore(EpistemicStorePort):
             EvidenceSnapshotRow.evidence_id == evidence_id,
             EvidenceSnapshotRow.owner_id == owner_id,
             EvidenceSnapshotRow.application_id == application_id,
+        )
+        row = self._session.scalars(stmt).first()
+        return None if row is None else _evidence_from_row(row)
+
+    def get_evidence_by_fingerprint(
+        self,
+        owner_id: str,
+        application_id: str,
+        experiment_id: str,
+        phase: str,
+        evidence_fingerprint: str,
+    ) -> ProjectedEvidenceSnapshot | None:
+        stmt = select(EvidenceSnapshotRow).where(
+            EvidenceSnapshotRow.owner_id == owner_id,
+            EvidenceSnapshotRow.application_id == application_id,
+            EvidenceSnapshotRow.experiment_id == experiment_id,
+            EvidenceSnapshotRow.phase == phase,
+            EvidenceSnapshotRow.evidence_fingerprint == evidence_fingerprint,
         )
         row = self._session.scalars(stmt).first()
         return None if row is None else _evidence_from_row(row)
@@ -280,6 +312,16 @@ class SqlAlchemyEpistemicStore(EpistemicStorePort):
         existing.current_belief_state = row.current_belief_state
         existing.last_evaluated_at = row.last_evaluated_at
         existing.updated_at = row.updated_at
+        existing.target_remaining = row.target_remaining
+        existing.sufficient_remaining = row.sufficient_remaining
+        existing.below_remaining = row.below_remaining
+        existing.future_excluded = row.future_excluded
+        existing.duplicate_source_excluded = row.duplicate_source_excluded
+        existing.critical_data_quality_failure = 1 if row.critical_data_quality_failure else 0
+        existing.evaluation_kind = row.evaluation_kind
+        existing.terminal = 1 if row.terminal else 0
+        existing.terminal_reason = row.terminal_reason
+        existing.minimum_group_size = row.minimum_group_size
 
     def get_experiment_progress(
         self, owner_id: str, application_id: str, experiment_id: str
@@ -428,6 +470,9 @@ def _experiment_to_row(row: ProjectedExperiment) -> CurrentExperimentRow:
         event_id=row.event_id,
         global_position=row.global_position,
         updated_at=row.updated_at,
+        activation_event_id=row.activation_event_id,
+        activation_global_position=row.activation_global_position,
+        activation_recorded_at=row.activation_recorded_at,
     )
 
 
@@ -454,6 +499,15 @@ def _experiment_from_row(row: CurrentExperimentRow) -> ProjectedExperiment:
         event_id=row.event_id,
         global_position=int(row.global_position),
         updated_at=_as_utc(row.updated_at),
+        activation_event_id=row.activation_event_id,
+        activation_global_position=(
+            int(row.activation_global_position)
+            if row.activation_global_position is not None
+            else None
+        ),
+        activation_recorded_at=(
+            _as_utc(row.activation_recorded_at) if row.activation_recorded_at else None
+        ),
     )
 
 
@@ -543,6 +597,17 @@ def _evidence_to_row(row: ProjectedEvidenceSnapshot) -> EvidenceSnapshotRow:
         audit_id=row.audit_id,
         event_id=row.event_id,
         global_position=row.global_position,
+        evidence_fingerprint=row.evidence_fingerprint,
+        evidence_cutoff_global_position=row.evidence_cutoff_global_position,
+        evidence_cutoff_recorded_at=row.evidence_cutoff_recorded_at,
+        evaluation_started_at=row.evaluation_started_at,
+        evaluation_kind=row.evaluation_kind,
+        terminal=1 if row.terminal else 0,
+        terminal_reason=row.terminal_reason,
+        critical_data_quality_failure=1 if row.critical_data_quality_failure else 0,
+        source_count=row.source_count,
+        first_source_global_position=row.first_source_global_position,
+        last_source_global_position=row.last_source_global_position,
     )
 
 
@@ -582,6 +647,33 @@ def _evidence_from_row(row: EvidenceSnapshotRow) -> ProjectedEvidenceSnapshot:
         audit_id=row.audit_id,
         event_id=row.event_id,
         global_position=int(row.global_position),
+        evidence_fingerprint=row.evidence_fingerprint,
+        evidence_cutoff_global_position=(
+            int(row.evidence_cutoff_global_position)
+            if row.evidence_cutoff_global_position is not None
+            else None
+        ),
+        evidence_cutoff_recorded_at=(
+            _as_utc(row.evidence_cutoff_recorded_at) if row.evidence_cutoff_recorded_at else None
+        ),
+        evaluation_started_at=(
+            _as_utc(row.evaluation_started_at) if row.evaluation_started_at else None
+        ),
+        evaluation_kind=row.evaluation_kind,
+        terminal=bool(row.terminal),
+        terminal_reason=row.terminal_reason,
+        critical_data_quality_failure=bool(row.critical_data_quality_failure),
+        source_count=int(row.source_count or 0),
+        first_source_global_position=(
+            int(row.first_source_global_position)
+            if row.first_source_global_position is not None
+            else None
+        ),
+        last_source_global_position=(
+            int(row.last_source_global_position)
+            if row.last_source_global_position is not None
+            else None
+        ),
     )
 
 
@@ -604,6 +696,16 @@ def _progress_to_row(row: ProjectedExperimentProgress) -> ExperimentProgressRow:
         current_belief_state=row.current_belief_state,
         last_evaluated_at=row.last_evaluated_at,
         updated_at=row.updated_at,
+        target_remaining=row.target_remaining,
+        sufficient_remaining=row.sufficient_remaining,
+        below_remaining=row.below_remaining,
+        future_excluded=row.future_excluded,
+        duplicate_source_excluded=row.duplicate_source_excluded,
+        critical_data_quality_failure=1 if row.critical_data_quality_failure else 0,
+        evaluation_kind=row.evaluation_kind,
+        terminal=1 if row.terminal else 0,
+        terminal_reason=row.terminal_reason,
+        minimum_group_size=row.minimum_group_size,
     )
 
 
@@ -626,6 +728,16 @@ def _progress_from_row(row: ExperimentProgressRow) -> ProjectedExperimentProgres
         current_belief_state=row.current_belief_state,
         last_evaluated_at=_as_utc_opt(row.last_evaluated_at),
         updated_at=_as_utc(row.updated_at),
+        target_remaining=row.target_remaining,
+        sufficient_remaining=row.sufficient_remaining,
+        below_remaining=row.below_remaining,
+        future_excluded=int(row.future_excluded or 0),
+        duplicate_source_excluded=int(row.duplicate_source_excluded or 0),
+        critical_data_quality_failure=bool(row.critical_data_quality_failure),
+        evaluation_kind=row.evaluation_kind,
+        terminal=bool(row.terminal),
+        terminal_reason=row.terminal_reason,
+        minimum_group_size=row.minimum_group_size,
     )
 
 

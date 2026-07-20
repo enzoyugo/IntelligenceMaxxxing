@@ -390,6 +390,11 @@ class CurrentExperimentRow(Base):
     event_id: Mapped[str] = mapped_column(String(64), nullable=False)
     global_position: Mapped[int] = mapped_column(BigInteger, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    activation_event_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    activation_global_position: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    activation_recorded_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
 
 class BeliefSnapshotRow(Base):
@@ -453,6 +458,21 @@ class EvidenceSnapshotRow(Base):
     audit_id: Mapped[str] = mapped_column(String(64), nullable=False)
     event_id: Mapped[str] = mapped_column(String(64), nullable=False)
     global_position: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    evidence_fingerprint: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    evidence_cutoff_global_position: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    evidence_cutoff_recorded_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    evaluation_started_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    evaluation_kind: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    terminal: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    terminal_reason: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    critical_data_quality_failure: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    source_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    first_source_global_position: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    last_source_global_position: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
 
 
 class ExperimentProgressRow(Base):
@@ -479,6 +499,16 @@ class ExperimentProgressRow(Base):
         DateTime(timezone=True), nullable=True
     )
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    target_remaining: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    sufficient_remaining: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    below_remaining: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    future_excluded: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    duplicate_source_excluded: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    critical_data_quality_failure: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    evaluation_kind: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    terminal: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    terminal_reason: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    minimum_group_size: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
 class LearningHistoryRow(Base):
