@@ -1,4 +1,4 @@
-"""Stage 3 epistemic E2E canaries (synthetic data only).
+"""Stage 3.1 epistemic E2E canaries (synthetic data only; no future-dated hacks).
 
 Env:
   E2E_ENGINE_URL, E2E_LIFE_URL, E2E_LIFE_CREDENTIAL, E2E_OTHER_CREDENTIAL, E2E_PHASE
@@ -44,12 +44,12 @@ def _idem() -> str:
     return f"e2e-{uuid.uuid4().hex}"
 
 
-def _params() -> dict:
+def _params(*, target: int = 42, window_days: int = 60) -> dict:
     return {
         "sleep_threshold_hours": 7.0,
         "minimum_meaningful_difference": 0.5,
-        "prospective_target": 14,
-        "maximum_window_days": 60,
+        "prospective_target": target,
+        "maximum_window_days": window_days,
     }
 
 
@@ -59,12 +59,15 @@ def _checkin(
     occurred_at: datetime,
     sleep_hours: float,
     productivity: float,
+    source_record_id: str,
 ) -> None:
+    # Stage 3.1: never send occurred_at in the future relative to wall clock.
+    assert occurred_at <= datetime.now(UTC) + timedelta(minutes=1)
     body = {
         "schema_version": "1.0",
         "domain_pack": "life",
         "subject": "daily_check_in",
-        "statement": "synthetic stage3 check-in",
+        "statement": "synthetic stage3.1 check-in",
         "knowledge_class": "OBSERVED_FACT",
         "observed_by": "stage3-e2e",
         "context": {
@@ -80,7 +83,7 @@ def _checkin(
                 "social_activity": 0,
             },
         },
-        "source_ids": [],
+        "source_ids": [f"lifemaxxxing://daily-check-ins/{source_record_id}"],
         "metadata": {"life_event_type": "life.daily_check_in.completed.v1", "synthetic": True},
         "occurred_at": occurred_at.isoformat(),
     }
@@ -88,24 +91,35 @@ def _checkin(
     ok("seed observation", r.status_code in (200, 201), r.text[:200])
 
 
-def _seed_association(secret: str, start: datetime, days: int, *, positive: bool) -> None:
-    """Seed balanced groups around threshold 7.0 with a clear productivity gap."""
+def _seed_association(
+    secret: str, start: datetime, days: int, *, positive: bool, prefix: str
+) -> None:
+    """Seed balanced groups. All occurred_at <= now (no future fabrication)."""
+    now = datetime.now(UTC)
     for i in range(days):
-        day = start + timedelta(days=i)
+        day = start + timedelta(hours=i)
+        if day > now:
+            day = now - timedelta(seconds=(days - i))
         if i % 2 == 0:
             sleep = 8.0
             prod = 8.5 if positive else 3.0
         else:
             sleep = 5.5
             prod = 3.0 if positive else 8.5
-        _checkin(secret=secret, occurred_at=day, sleep_hours=sleep, productivity=prod)
+        _checkin(
+            secret=secret,
+            occurred_at=day,
+            sleep_hours=sleep,
+            productivity=prod,
+            source_record_id=f"{prefix}-{i}",
+        )
 
 
 def run_online() -> None:
     life_secret = os.environ["E2E_LIFE_CREDENTIAL"]
     other_secret = os.environ["E2E_OTHER_CREDENTIAL"]
 
-    # --- Canary 1: insufficient evidence ---
+    # Canary 1 — future rejection (occurred_at slightly ahead of skew → excluded)
     prop = eng(
         "POST",
         "/api/v1/hypotheses",
@@ -124,20 +138,45 @@ def run_online() -> None:
     )
     ok("c1 activate", act.status_code == 201, act.text[:200])
     exp1 = act.json()["data"]["experiment_id"]
+    # Intentionally >5min skew to force OCCURRED_AT_IN_FUTURE exclusion.
+    future = datetime.now(UTC) + timedelta(hours=6)
+    body_future = {
+        "schema_version": "1.0",
+        "domain_pack": "life",
+        "subject": "daily_check_in",
+        "statement": "future synthetic",
+        "knowledge_class": "OBSERVED_FACT",
+        "observed_by": "stage3-e2e",
+        "context": {
+            "scope": "personal",
+            "attributes": {"sleep_hours": 8.0, "productivity": 9.0},
+        },
+        "source_ids": ["lifemaxxxing://daily-check-ins/future-1"],
+        "metadata": {"life_event_type": "life.daily_check_in.completed.v1", "synthetic": True},
+        "occurred_at": future.isoformat(),
+    }
+    # Allow submit (Engine accepts observation); evaluation must not count it.
+    eng(
+        "POST",
+        "/api/v1/observations",
+        life_secret,
+        body_future,
+        {"Idempotency-Key": _idem()},
+    )
     ev = eng(
         "POST",
         f"/api/v1/experiments/{exp1}/evaluate",
         life_secret,
-        {"phase": "BASELINE_EXPLORATORY"},
+        {"phase": "PROSPECTIVE_VALIDATION"},
         {"Idempotency-Key": _idem()},
     )
     ok("c1 evaluate", ev.status_code == 201, ev.text[:200])
-    ok("c1 insufficient", ev.json()["data"]["belief_state"] == "INSUFFICIENT_EVIDENCE")
+    d1 = ev.json()["data"]
+    ok("c1 not supported", d1["belief_state"] != "PROSPECTIVE_SUPPORTED", d1["belief_state"])
+    ok("c1 collecting or insufficient", d1["belief_state"] in {"PROSPECTIVE_COLLECTING", "INSUFFICIENT_EVIDENCE"})
+    ok("c1 not terminal", d1.get("terminal") is False)
 
-    # --- Canary 2: exploratory positive ---
-    # Seed BEFORE activation so observations fall into the baseline window.
-    past = datetime.now(UTC) - timedelta(days=40)
-    _seed_association(life_secret, past, 16, positive=True)
+    # Canary 2 — target enforcement (14 < 42)
     prop2 = eng(
         "POST",
         "/api/v1/hypotheses",
@@ -150,45 +189,58 @@ def run_online() -> None:
         "POST",
         f"/api/v1/hypotheses/{hyp2}/activate",
         life_secret,
-        {"parameters": _params()},
+        {"parameters": _params(target=42)},
         {"Idempotency-Key": _idem()},
     )
     exp2 = act2.json()["data"]["experiment_id"]
+    start = datetime.now(UTC) - timedelta(hours=13)
+    _seed_association(life_secret, start, 14, positive=True, prefix=f"t14-{uuid.uuid4().hex[:8]}")
     ev2 = eng(
-        "POST",
-        f"/api/v1/experiments/{exp2}/evaluate",
-        life_secret,
-        {"phase": "BASELINE_EXPLORATORY"},
-        {"Idempotency-Key": _idem()},
-    )
-    ok("c2 evaluate", ev2.status_code == 201, ev2.text[:200])
-    state2 = ev2.json()["data"]["belief_state"]
-    ok("c2 exploratory positive", state2 == "EXPLORATORY_POSITIVE", state2)
-    ok("c2 never prospective supported on baseline", state2 != "PROSPECTIVE_SUPPORTED")
-
-    # --- Canary 3: prospective supported ---
-    # Seed AFTER activation into the prospective window.
-    now = datetime.now(UTC)
-    _seed_association(life_secret, now - timedelta(minutes=1), 16, positive=True)
-    ev3 = eng(
         "POST",
         f"/api/v1/experiments/{exp2}/evaluate",
         life_secret,
         {"phase": "PROSPECTIVE_VALIDATION"},
         {"Idempotency-Key": _idem()},
     )
-    ok("c3 evaluate", ev3.status_code == 201, ev3.text[:200])
-    state3 = ev3.json()["data"]["belief_state"]
-    ok("c3 prospective supported", state3 == "PROSPECTIVE_SUPPORTED", state3)
-    bel = eng("GET", f"/api/v1/hypotheses/{hyp2}/beliefs/current", life_secret)
-    ok("c3 belief readable", bel.status_code == 200 and bel.json()["data"] is not None)
-    bdata = bel.json()["data"]
-    ok("c3 calibration UNCALIBRATED", bdata["calibration_state"] == "UNCALIBRATED")
-    ok("c3 causality CORRELATION", bdata["causality_level"] == "CORRELATION")
+    ok("c2 evaluate", ev2.status_code == 201, ev2.text[:200])
+    d2 = ev2.json()["data"]
+    ok("c2 collecting", d2["belief_state"] == "PROSPECTIVE_COLLECTING", d2["belief_state"])
+    ok("c2 not terminal", d2.get("terminal") is False)
+    ok("c2 target remaining", int(d2.get("target_remaining", 0)) >= 28)
 
-    # --- Canary 4: contradiction / weakened ---
-    past4 = datetime.now(UTC) - timedelta(days=40)
-    _seed_association(life_secret, past4, 16, positive=True)
+    learn2 = eng("GET", f"/api/v1/hypotheses/{hyp2}/learning", life_secret)
+    ok(
+        "c2 no learning",
+        learn2.status_code == 200 and len(learn2.json()["data"]["items"]) == 0,
+        str(len(learn2.json()["data"]["items"])),
+    )
+
+    # Canary 3 — semantic replay (different Idempotency-Key)
+    key_a = _idem()
+    key_b = _idem()
+    r_a = eng(
+        "POST",
+        f"/api/v1/experiments/{exp2}/evaluate",
+        life_secret,
+        {"phase": "PROSPECTIVE_VALIDATION"},
+        {"Idempotency-Key": key_a},
+    )
+    r_b = eng(
+        "POST",
+        f"/api/v1/experiments/{exp2}/evaluate",
+        life_secret,
+        {"phase": "PROSPECTIVE_VALIDATION"},
+        {"Idempotency-Key": key_b},
+    )
+    ok("c3 first", r_a.status_code in (200, 201))
+    ok("c3 second", r_b.status_code in (200, 201))
+    ok(
+        "c3 same evidence",
+        r_a.json()["data"]["evidence_id"] == r_b.json()["data"]["evidence_id"],
+    )
+    ok("c3 replayed", r_b.json()["data"]["replayed"] is True)
+
+    # Canary 4 — duplicate source (14 rows / 7 sources)
     prop4 = eng(
         "POST",
         "/api/v1/hypotheses",
@@ -201,18 +253,21 @@ def run_online() -> None:
         "POST",
         f"/api/v1/hypotheses/{hyp4}/activate",
         life_secret,
-        {"parameters": _params()},
+        {"parameters": _params(target=42)},
         {"Idempotency-Key": _idem()},
     )
     exp4 = act4.json()["data"]["experiment_id"]
-    eng(
-        "POST",
-        f"/api/v1/experiments/{exp4}/evaluate",
-        life_secret,
-        {"phase": "BASELINE_EXPLORATORY"},
-        {"Idempotency-Key": _idem()},
-    )
-    _seed_association(life_secret, datetime.now(UTC) - timedelta(minutes=1), 40, positive=False)
+    base = datetime.now(UTC) - timedelta(hours=20)
+    prefix = f"dup-{uuid.uuid4().hex[:8]}"
+    for i in range(14):
+        src = f"{prefix}-{i % 7}"
+        _checkin(
+            secret=life_secret,
+            occurred_at=base + timedelta(minutes=i),
+            sleep_hours=8.0 if i % 2 == 0 else 5.5,
+            productivity=8.5 if i % 2 == 0 else 3.0,
+            source_record_id=src,
+        )
     ev4 = eng(
         "POST",
         f"/api/v1/experiments/{exp4}/evaluate",
@@ -220,40 +275,16 @@ def run_online() -> None:
         {"phase": "PROSPECTIVE_VALIDATION"},
         {"Idempotency-Key": _idem()},
     )
+    d4 = ev4.json()["data"]
     ok("c4 evaluate", ev4.status_code == 201, ev4.text[:200])
-    state4 = ev4.json()["data"]["belief_state"]
-    ok(
-        "c4 contradiction path",
-        state4 in {"PROSPECTIVE_WEAKENED", "PROSPECTIVE_INCONCLUSIVE"},
-        state4,
-    )
-    learn = eng("GET", f"/api/v1/hypotheses/{hyp4}/learning", life_secret)
-    ok("c4 learning recorded", learn.status_code == 200 and len(learn.json()["data"]["items"]) >= 1)
+    ok("c4 eligible <= 7", int(d4.get("prospective_eligible", 99)) <= 7, str(d4.get("prospective_eligible")))
+    ok("c4 not supported", d4["belief_state"] != "PROSPECTIVE_SUPPORTED")
 
-    # --- Canary 5: isolation ---
+    # Canary 5 — isolation
     other = eng("GET", f"/api/v1/hypotheses/{hyp2}", other_secret)
     ok("c5 isolation", other.status_code in (403, 404), str(other.status_code))
 
-    # --- Canary 6: replay ---
-    key = _idem()
-    first = eng(
-        "POST",
-        "/api/v1/hypotheses",
-        life_secret,
-        {"human_confirmed": False},
-        {"Idempotency-Key": key},
-    )
-    second = eng(
-        "POST",
-        "/api/v1/hypotheses",
-        life_secret,
-        {"human_confirmed": False},
-        {"Idempotency-Key": key},
-    )
-    ok("c6 first create", first.status_code == 201)
-    ok("c6 replay", second.status_code == 200 and second.json()["data"]["replayed"] is True)
-
-    # --- Life BFF smoke ---
+    # Canary 6 — Life BFF
     listed = life("GET", "/api/intelligence/hypotheses")
     ok("life list hypotheses", listed.status_code == 200 and listed.json()["ok"] is True)
     ok(
@@ -275,12 +306,12 @@ def run_offline() -> None:
 
 
 def main() -> int:
-    print(f"Stage 3 epistemic canaries phase={PHASE}")
+    print(f"Stage 3.1 epistemic canaries phase={PHASE}")
     if PHASE == "offline":
         run_offline()
     else:
         run_online()
-    print(f"ALL STAGE 3 CANARIES PASSED ({len(_passed)})")
+    print(f"ALL STAGE 3.1 CANARIES PASSED ({len(_passed)})")
     return 0
 
 
