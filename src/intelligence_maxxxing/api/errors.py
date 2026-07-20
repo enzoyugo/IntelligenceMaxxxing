@@ -12,6 +12,9 @@ from intelligence_maxxxing.application.errors import (
     ApplicationError,
     AuditNotFoundError,
     AuthenticationError,
+    ExperimentNotFoundError,
+    HypothesisNotFoundError,
+    HypothesisStateError,
     IdempotencyConflictError,
     ObservationNotFoundError,
     PermissionDeniedError,
@@ -25,8 +28,11 @@ _STATUS_BY_ERROR: dict[type[ApplicationError], int] = {
     IdempotencyConflictError: status.HTTP_409_CONFLICT,
     AuditNotFoundError: status.HTTP_404_NOT_FOUND,
     ObservationNotFoundError: status.HTTP_404_NOT_FOUND,
+    HypothesisNotFoundError: status.HTTP_404_NOT_FOUND,
+    ExperimentNotFoundError: status.HTTP_404_NOT_FOUND,
     AuthenticationError: status.HTTP_401_UNAUTHORIZED,
     PermissionDeniedError: status.HTTP_403_FORBIDDEN,
+    HypothesisStateError: status.HTTP_409_CONFLICT,
     # A quarantined stream is a durable state conflict (needs a governed
     # release), not a transient outage: 409, consistent across the API.
     StreamQuarantinedError: status.HTTP_409_CONFLICT,

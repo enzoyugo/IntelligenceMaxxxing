@@ -8,7 +8,7 @@ from fastapi import APIRouter, FastAPI
 from intelligence_maxxxing import API_VERSION, ENGINE_VERSION
 from intelligence_maxxxing.api.errors import register_error_handlers
 from intelligence_maxxxing.api.middleware import register_middleware
-from intelligence_maxxxing.api.routes import audits, health, observations
+from intelligence_maxxxing.api.routes import audits, experiments, health, hypotheses, observations
 from intelligence_maxxxing.config import EngineSettings, get_settings
 from intelligence_maxxxing.infrastructure.database import (
     create_database_engine,
@@ -50,6 +50,8 @@ def create_app(settings: EngineSettings | None = None) -> FastAPI:
     api_v1 = APIRouter(prefix=API_PREFIX)
     api_v1.include_router(health.router, tags=["health"])
     api_v1.include_router(observations.router, tags=["observations"])
+    api_v1.include_router(hypotheses.router, tags=["hypotheses"])
+    api_v1.include_router(experiments.router, tags=["experiments"])
     api_v1.include_router(audits.router, tags=["audits"])
     app.include_router(api_v1)
 

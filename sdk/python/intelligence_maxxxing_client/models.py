@@ -105,3 +105,161 @@ class AuditView(BaseModel):
     timestamp: str
     events: list[AuditEventView] = Field(default_factory=list)
     meta: EnvelopeMeta
+
+
+class HypothesisParameters(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    sleep_threshold_hours: float
+    minimum_meaningful_difference: float = 0.5
+    prospective_target: int = 30
+    maximum_window_days: int = 60
+
+
+class HypothesisWriteResult(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    hypothesis_id: str
+    event_id: str
+    audit_id: str
+    replayed: bool
+    experiment_id: str | None = None
+    meta: EnvelopeMeta
+
+
+class HypothesisView(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    hypothesis_id: str
+    template_id: str
+    template_version: str
+    statement: str
+    direction: str
+    causality_level: str
+    status: str
+    human_confirmed: bool
+    parameters: dict[str, Any] | None = None
+    proposed_at: str
+    activated_at: str | None = None
+    retired_at: str | None = None
+    experiment_id: str | None = None
+    audit_id: str
+    event_id: str
+
+
+class HypothesisListView(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    items: list[HypothesisView]
+    meta: EnvelopeMeta
+
+
+class ExperimentView(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    experiment_id: str
+    hypothesis_id: str
+    protocol_version: str
+    analysis_method: str
+    baseline_cutoff: str
+    prospective_start: str
+    prospective_target: int
+    maximum_window_days: int
+    minimum_group_size: int
+    minimum_meaningful_difference: float
+    sleep_threshold_hours: float
+    random_seed_policy: str
+    status: str
+    pre_registered_at: str
+    audit_id: str
+    event_id: str
+
+
+class ExperimentProgressView(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    experiment_id: str
+    hypothesis_id: str
+    baseline_eligible: int
+    baseline_sufficient: int
+    baseline_below: int
+    prospective_eligible: int
+    prospective_sufficient: int
+    prospective_below: int
+    prospective_target: int
+    window_days_remaining: int | None = None
+    status: str
+    current_belief_state: str | None = None
+    last_evaluated_at: str | None = None
+    updated_at: str
+
+
+class EvaluateExperimentResult(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    experiment_id: str
+    evidence_id: str
+    belief_id: str
+    belief_state: str
+    event_id: str
+    audit_id: str
+    replayed: bool
+    meta: EnvelopeMeta
+
+
+class BeliefView(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    belief_id: str
+    hypothesis_id: str
+    evidence_id: str
+    previous_belief_id: str | None = None
+    belief_state: str
+    model_probability: float
+    credible_interval_low: float
+    credible_interval_high: float
+    estimated_effect: float
+    minimum_meaningful_difference: float
+    data_confidence: str
+    method_confidence: str
+    conclusion_confidence: str
+    recommendation_confidence: str
+    calibration_state: str
+    causality_level: str
+    limitations: list[str] = Field(default_factory=list)
+    is_current: bool
+    created_at: str
+    audit_id: str
+    event_id: str
+
+
+class BeliefListView(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    items: list[BeliefView]
+    meta: EnvelopeMeta
+
+
+class LearningView(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    learning_id: str
+    hypothesis_id: str
+    previous_belief_id: str | None = None
+    new_belief_id: str
+    outcome_evaluation_id: str
+    change_type: str
+    what_changed: str
+    why_changed: str
+    what_remains_unknown: str
+    next_evidence_needed: str
+    created_at: str
+    audit_id: str
+    event_id: str
+
+
+class LearningListView(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    items: list[LearningView]
+    meta: EnvelopeMeta

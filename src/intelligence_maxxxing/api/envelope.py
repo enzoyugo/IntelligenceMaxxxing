@@ -32,7 +32,7 @@ def build_meta(
     )
 
 
-def success_envelope(data: dict[str, Any], meta: ResponseMeta) -> ApiResponseEnvelope:
+def success_envelope(data: dict[str, Any] | None, meta: ResponseMeta) -> ApiResponseEnvelope:
     return ApiResponseEnvelope(ok=True, data=data, error=None, meta=meta)
 
 

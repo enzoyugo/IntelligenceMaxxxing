@@ -18,8 +18,19 @@ from intelligence_maxxxing_client.errors import (
 )
 from intelligence_maxxxing_client.models import (
     AuditView,
+    BeliefListView,
+    BeliefView,
     EnvelopeMeta,
+    EvaluateExperimentResult,
+    ExperimentProgressView,
+    ExperimentView,
     HealthView,
+    HypothesisListView,
+    HypothesisParameters,
+    HypothesisView,
+    HypothesisWriteResult,
+    LearningListView,
+    LearningView,
     ObservationAcceptedView,
     ObservationListView,
     ObservationView,
@@ -212,3 +223,115 @@ class IntelligenceMaxxxingClient:
     def get_audit(self, audit_id: str) -> AuditView:
         envelope = self._request("GET", f"/api/v1/audits/{audit_id}")
         return AuditView(**envelope["data"], meta=EnvelopeMeta(**envelope["meta"]))
+
+    def create_hypothesis(
+        self,
+        *,
+        idempotency_key: str,
+        parameters: dict[str, Any] | HypothesisParameters | None = None,
+        human_confirmed: bool = False,
+    ) -> HypothesisWriteResult:
+        body: dict[str, Any] = {"human_confirmed": human_confirmed}
+        if parameters is not None:
+            if isinstance(parameters, HypothesisParameters):
+                body["parameters"] = parameters.model_dump()
+            else:
+                body["parameters"] = parameters
+        envelope = self._request(
+            "POST",
+            "/api/v1/hypotheses",
+            json_body=body,
+            headers={"Idempotency-Key": idempotency_key},
+        )
+        return HypothesisWriteResult(**envelope["data"], meta=EnvelopeMeta(**envelope["meta"]))
+
+    def list_hypotheses(self) -> HypothesisListView:
+        envelope = self._request("GET", "/api/v1/hypotheses")
+        data = envelope["data"] or {}
+        return HypothesisListView(
+            items=[HypothesisView(**item) for item in data.get("items", [])],
+            meta=EnvelopeMeta(**envelope["meta"]),
+        )
+
+    def get_hypothesis(self, hypothesis_id: str) -> HypothesisView:
+        envelope = self._request("GET", f"/api/v1/hypotheses/{hypothesis_id}")
+        return HypothesisView(**envelope["data"])
+
+    def activate_hypothesis(
+        self,
+        hypothesis_id: str,
+        *,
+        parameters: dict[str, Any] | HypothesisParameters,
+        idempotency_key: str,
+    ) -> HypothesisWriteResult:
+        payload = (
+            parameters.model_dump() if isinstance(parameters, HypothesisParameters) else parameters
+        )
+        envelope = self._request(
+            "POST",
+            f"/api/v1/hypotheses/{hypothesis_id}/activate",
+            json_body={"parameters": payload},
+            headers={"Idempotency-Key": idempotency_key},
+        )
+        return HypothesisWriteResult(**envelope["data"], meta=EnvelopeMeta(**envelope["meta"]))
+
+    def retire_hypothesis(
+        self,
+        hypothesis_id: str,
+        *,
+        reason: str,
+        idempotency_key: str,
+    ) -> HypothesisWriteResult:
+        envelope = self._request(
+            "POST",
+            f"/api/v1/hypotheses/{hypothesis_id}/retire",
+            json_body={"reason": reason},
+            headers={"Idempotency-Key": idempotency_key},
+        )
+        return HypothesisWriteResult(**envelope["data"], meta=EnvelopeMeta(**envelope["meta"]))
+
+    def get_experiment(self, experiment_id: str) -> ExperimentView:
+        envelope = self._request("GET", f"/api/v1/experiments/{experiment_id}")
+        return ExperimentView(**envelope["data"])
+
+    def get_experiment_progress(self, experiment_id: str) -> ExperimentProgressView:
+        envelope = self._request("GET", f"/api/v1/experiments/{experiment_id}/progress")
+        return ExperimentProgressView(**envelope["data"])
+
+    def evaluate_experiment(
+        self,
+        experiment_id: str,
+        *,
+        phase: str,
+        idempotency_key: str,
+    ) -> EvaluateExperimentResult:
+        envelope = self._request(
+            "POST",
+            f"/api/v1/experiments/{experiment_id}/evaluate",
+            json_body={"phase": phase},
+            headers={"Idempotency-Key": idempotency_key},
+        )
+        return EvaluateExperimentResult(**envelope["data"], meta=EnvelopeMeta(**envelope["meta"]))
+
+    def get_current_belief(self, hypothesis_id: str) -> BeliefView | None:
+        envelope = self._request("GET", f"/api/v1/hypotheses/{hypothesis_id}/beliefs/current")
+        data = envelope.get("data")
+        if data is None:
+            return None
+        return BeliefView(**data)
+
+    def list_beliefs(self, hypothesis_id: str) -> BeliefListView:
+        envelope = self._request("GET", f"/api/v1/hypotheses/{hypothesis_id}/beliefs")
+        data = envelope["data"] or {}
+        return BeliefListView(
+            items=[BeliefView(**item) for item in data.get("items", [])],
+            meta=EnvelopeMeta(**envelope["meta"]),
+        )
+
+    def list_learning(self, hypothesis_id: str) -> LearningListView:
+        envelope = self._request("GET", f"/api/v1/hypotheses/{hypothesis_id}/learning")
+        data = envelope["data"] or {}
+        return LearningListView(
+            items=[LearningView(**item) for item in data.get("items", [])],
+            meta=EnvelopeMeta(**envelope["meta"]),
+        )

@@ -13,6 +13,19 @@ from intelligence_maxxxing.application.use_cases import (
     GetAuditUseCase,
     SubmitObservationUseCase,
 )
+from intelligence_maxxxing.application.use_cases.epistemic import (
+    ActivateHypothesisUseCase,
+    EvaluateExperimentUseCase,
+    GetCurrentBeliefUseCase,
+    GetExperimentProgressUseCase,
+    GetExperimentUseCase,
+    GetHypothesisUseCase,
+    ListBeliefsUseCase,
+    ListHypothesesUseCase,
+    ListLearningUseCase,
+    ProposeHypothesisUseCase,
+    RetireHypothesisUseCase,
+)
 from intelligence_maxxxing.application.use_cases.read_observations import (
     GetObservationUseCase,
     ListObservationsUseCase,
@@ -66,10 +79,14 @@ def get_auth_context(
     return context
 
 
+def _uow(request: Request) -> SqlAlchemyUnitOfWork:
+    return SqlAlchemyUnitOfWork(get_session_factory(request))
+
+
 def get_submit_observation_use_case(request: Request) -> SubmitObservationUseCase:
     settings = get_app_settings(request)
     return SubmitObservationUseCase(
-        uow=SqlAlchemyUnitOfWork(get_session_factory(request)),
+        uow=_uow(request),
         engine_version=settings.engine_version,
         api_version=API_VERSION,
         health_provider=get_health_snapshot_provider(request),
@@ -77,15 +94,83 @@ def get_submit_observation_use_case(request: Request) -> SubmitObservationUseCas
 
 
 def get_audit_use_case(request: Request) -> GetAuditUseCase:
-    return GetAuditUseCase(SqlAlchemyUnitOfWork(get_session_factory(request)))
+    return GetAuditUseCase(_uow(request))
 
 
 def get_observation_use_case(request: Request) -> GetObservationUseCase:
-    return GetObservationUseCase(SqlAlchemyUnitOfWork(get_session_factory(request)))
+    return GetObservationUseCase(_uow(request))
 
 
 def get_list_observations_use_case(request: Request) -> ListObservationsUseCase:
-    return ListObservationsUseCase(SqlAlchemyUnitOfWork(get_session_factory(request)))
+    return ListObservationsUseCase(_uow(request))
+
+
+def get_propose_hypothesis_use_case(request: Request) -> ProposeHypothesisUseCase:
+    settings = get_app_settings(request)
+    return ProposeHypothesisUseCase(
+        uow=_uow(request),
+        engine_version=settings.engine_version,
+        api_version=API_VERSION,
+        health_provider=get_health_snapshot_provider(request),
+    )
+
+
+def get_activate_hypothesis_use_case(request: Request) -> ActivateHypothesisUseCase:
+    settings = get_app_settings(request)
+    return ActivateHypothesisUseCase(
+        uow=_uow(request),
+        engine_version=settings.engine_version,
+        api_version=API_VERSION,
+        health_provider=get_health_snapshot_provider(request),
+    )
+
+
+def get_retire_hypothesis_use_case(request: Request) -> RetireHypothesisUseCase:
+    settings = get_app_settings(request)
+    return RetireHypothesisUseCase(
+        uow=_uow(request),
+        engine_version=settings.engine_version,
+        api_version=API_VERSION,
+        health_provider=get_health_snapshot_provider(request),
+    )
+
+
+def get_evaluate_experiment_use_case(request: Request) -> EvaluateExperimentUseCase:
+    settings = get_app_settings(request)
+    return EvaluateExperimentUseCase(
+        uow=_uow(request),
+        engine_version=settings.engine_version,
+        api_version=API_VERSION,
+        health_provider=get_health_snapshot_provider(request),
+    )
+
+
+def get_hypothesis_use_case(request: Request) -> GetHypothesisUseCase:
+    return GetHypothesisUseCase(_uow(request))
+
+
+def get_list_hypotheses_use_case(request: Request) -> ListHypothesesUseCase:
+    return ListHypothesesUseCase(_uow(request))
+
+
+def get_experiment_use_case(request: Request) -> GetExperimentUseCase:
+    return GetExperimentUseCase(_uow(request))
+
+
+def get_experiment_progress_use_case(request: Request) -> GetExperimentProgressUseCase:
+    return GetExperimentProgressUseCase(_uow(request))
+
+
+def get_current_belief_use_case(request: Request) -> GetCurrentBeliefUseCase:
+    return GetCurrentBeliefUseCase(_uow(request))
+
+
+def get_list_beliefs_use_case(request: Request) -> ListBeliefsUseCase:
+    return ListBeliefsUseCase(_uow(request))
+
+
+def get_list_learning_use_case(request: Request) -> ListLearningUseCase:
+    return ListLearningUseCase(_uow(request))
 
 
 # Convenience aliases used by route signatures.
