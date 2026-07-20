@@ -7,11 +7,13 @@
     "observation_schema_version": "1.0",
     "epistemic_template": "life.sleep_threshold_productivity.v1",
     "analysis_method": "BayesianBootstrapDifferenceInMeans.v1",
-    "migration": "0004_stage3"
+    "migration": "0006_wellbeing_v1",
+    "wellbeing_formula": "wellbeing_v1",
+    "wellbeing_formula_version": "1.0"
   },
   "sdk": {
     "package": "intelligence-maxxxing-client",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "python_requires": ">=3.10",
     "dependencies": ["httpx>=0.27", "pydantic>=2.7"],
     "numpy": "server-side-only"
@@ -65,7 +67,19 @@
     "POST /api/intelligence/experiments/{id}/evaluate",
     "GET /api/intelligence/experiments/{id}/progress",
     "GET /api/intelligence/hypotheses/{id}/belief",
-    "GET /api/intelligence/hypotheses/{id}/learning"
+    "GET /api/intelligence/hypotheses/{id}/learning",
+    "GET /api/intelligence/wellbeing/current",
+    "GET /api/intelligence/wellbeing/history",
+    "GET /api/intelligence/wellbeing/explanation",
+    "GET /api/intelligence/wellbeing/formula",
+    "POST /api/intelligence/wellbeing/feedback"
+  ],
+  "engine_wellbeing_endpoints": [
+    "GET /api/v1/wellbeing/current",
+    "GET /api/v1/wellbeing/history",
+    "GET /api/v1/wellbeing/explanation",
+    "GET /api/v1/wellbeing/formula",
+    "POST /api/v1/wellbeing/feedback"
   ],
   "life_backend_error_codes": [
     "unknown_event_type", "engine_validation", "engine_conflict",

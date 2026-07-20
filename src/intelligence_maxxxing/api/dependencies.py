@@ -173,5 +173,14 @@ def get_list_learning_use_case(request: Request) -> ListLearningUseCase:
     return ListLearningUseCase(_uow(request))
 
 
+def get_wellbeing_service(request: Request) -> "WellbeingService":
+    from intelligence_maxxxing.application.use_cases.wellbeing import WellbeingService
+
+    return WellbeingService(
+        uow=_uow(request),
+        session_factory=get_session_factory(request),
+    )
+
+
 # Convenience aliases used by route signatures.
 AuthDep = Annotated[AuthContext, Depends(get_auth_context)]

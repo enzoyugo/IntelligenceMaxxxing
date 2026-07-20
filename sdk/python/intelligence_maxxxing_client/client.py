@@ -335,3 +335,47 @@ class IntelligenceMaxxxingClient:
             items=[LearningView(**item) for item in data.get("items", [])],
             meta=EnvelopeMeta(**envelope["meta"]),
         )
+
+    def get_wellbeing_current(self, *, window_days: int = 14) -> dict[str, Any]:
+        envelope = self._request(
+            "GET",
+            "/api/v1/wellbeing/current",
+            params={"window_days": window_days},
+        )
+        return envelope["data"] or {}
+
+    def get_wellbeing_history(self, *, limit: int = 20) -> dict[str, Any]:
+        envelope = self._request(
+            "GET",
+            "/api/v1/wellbeing/history",
+            params={"limit": limit},
+        )
+        return envelope["data"] or {}
+
+    def get_wellbeing_explanation(
+        self, *, score_snapshot_id: str | None = None
+    ) -> dict[str, Any]:
+        params: dict[str, Any] = {}
+        if score_snapshot_id:
+            params["score_snapshot_id"] = score_snapshot_id
+        envelope = self._request("GET", "/api/v1/wellbeing/explanation", params=params or None)
+        return envelope["data"] or {}
+
+    def get_wellbeing_formula(self) -> dict[str, Any]:
+        envelope = self._request("GET", "/api/v1/wellbeing/formula")
+        return envelope["data"] or {}
+
+    def submit_wellbeing_feedback(
+        self,
+        *,
+        rating: str,
+        score_snapshot_id: str | None = None,
+        note: str | None = None,
+    ) -> dict[str, Any]:
+        body: dict[str, Any] = {"rating": rating}
+        if score_snapshot_id is not None:
+            body["score_snapshot_id"] = score_snapshot_id
+        if note is not None:
+            body["note"] = note
+        envelope = self._request("POST", "/api/v1/wellbeing/feedback", json_body=body)
+        return envelope["data"] or {}

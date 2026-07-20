@@ -533,3 +533,84 @@ class LearningHistoryRow(Base):
     audit_id: Mapped[str] = mapped_column(String(64), nullable=False)
     event_id: Mapped[str] = mapped_column(String(64), nullable=False)
     global_position: Mapped[int] = mapped_column(BigInteger, nullable=False)
+
+
+class WellbeingFormulaVersionRow(Base):
+    """Registered wellbeing formula versions (additive cache metadata)."""
+
+    __tablename__ = "wellbeing_formula_versions"
+
+    formula_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    version: Mapped[str] = mapped_column(String(16), primary_key=True)
+    description: Mapped[str] = mapped_column(String(2000), nullable=False)
+    active: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class WellbeingBaselineRow(Base):
+    __tablename__ = "wellbeing_baselines"
+
+    baseline_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    owner_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    application_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    window_days: Mapped[int] = mapped_column(Integer, nullable=False)
+    formula_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    formula_version: Mapped[str] = mapped_column(String(16), nullable=False)
+    features_json: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
+    sample_size: Mapped[int] = mapped_column(Integer, nullable=False)
+    computed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    as_of_global_position: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+
+
+class WellbeingFeatureSnapshotRow(Base):
+    __tablename__ = "wellbeing_feature_snapshots"
+
+    feature_snapshot_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    owner_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    application_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    formula_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    formula_version: Mapped[str] = mapped_column(String(16), nullable=False)
+    period_start: Mapped[str] = mapped_column(String(32), nullable=False)
+    period_end: Mapped[str] = mapped_column(String(32), nullable=False)
+    features_json: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
+    sample_size: Mapped[int] = mapped_column(Integer, nullable=False)
+    missing_days: Mapped[int] = mapped_column(Integer, nullable=False)
+    computed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    as_of_global_position: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+
+
+class WellbeingScoreSnapshotRow(Base):
+    __tablename__ = "wellbeing_score_snapshots"
+
+    score_snapshot_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    owner_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    application_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    formula_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    formula_version: Mapped[str] = mapped_column(String(16), nullable=False)
+    feature_snapshot_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    happiness: Mapped[float | None] = mapped_column(Float, nullable=True)
+    stress: Mapped[float | None] = mapped_column(Float, nullable=True)
+    confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    early_warning: Mapped[str] = mapped_column(String(64), nullable=False)
+    data_sufficiency: Mapped[str] = mapped_column(String(64), nullable=False)
+    contributors_json: Mapped[list[object]] = mapped_column(JSON, nullable=False)
+    suggested_actions_json: Mapped[list[object]] = mapped_column(JSON, nullable=False)
+    explanation_json: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
+    computed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    as_of_global_position: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+
+
+class WellbeingFeedbackRow(Base):
+    __tablename__ = "wellbeing_feedback"
+
+    feedback_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    owner_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    application_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    score_snapshot_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    rating: Mapped[str] = mapped_column(String(32), nullable=False)
+    note: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
