@@ -1,0 +1,10 @@
+# Risk policy — Life Pack v0.1.0 (SHADOW)
+
+mode: observational_only
+causality_claims: forbidden
+recommendations: forbidden
+execution: forbidden
+behavior_optimization: forbidden
+baseline_to_supported: forbidden
+leakage_protections: required
+confounding_diagnostics: descriptive_only

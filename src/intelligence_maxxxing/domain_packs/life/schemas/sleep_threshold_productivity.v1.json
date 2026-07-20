@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "life.sleep_threshold_productivity.v1 human parameters",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sleep_threshold_hours", "minimum_meaningful_difference"],
+  "properties": {
+    "sleep_threshold_hours": {
+      "type": "number",
+      "minimum": 6,
+      "maximum": 10,
+      "description": "Human-confirmed sleep threshold in hours"
+    },
+    "minimum_meaningful_difference": {
+      "type": "number",
+      "minimum": 0.1,
+      "maximum": 2.0,
+      "default": 0.5
+    },
+    "prospective_target": {
+      "type": "integer",
+      "minimum": 10,
+      "maximum": 365,
+      "default": 30
+    },
+    "maximum_window_days": {
+      "type": "integer",
+      "minimum": 14,
+      "maximum": 365,
+      "default": 60
+    }
+  }
+}

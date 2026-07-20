@@ -1,0 +1,7 @@
+# Calibration policy — Life Pack v0.1.0
+
+default_calibration_state: UNCALIBRATED
+auto_calibration: forbidden
+supported_requires_calibration: false
+recommendation_confidence_ceiling: VERY_LOW
+notes: Stage 3 never promotes calibration beyond UNCALIBRATED.

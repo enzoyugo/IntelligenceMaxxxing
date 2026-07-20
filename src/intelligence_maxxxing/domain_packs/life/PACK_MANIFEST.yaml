@@ -1,0 +1,20 @@
+name: life
+version: "0.1.0"
+status: EXPERIMENTAL
+shadow: true
+autonomy:
+  - OBSERVE
+  - ANALYZE
+  - EXPLAIN
+forbidden_autonomy:
+  - RECOMMEND
+  - EXECUTE
+  - OPTIMIZE_BEHAVIOR
+templates:
+  - id: life.sleep_threshold_productivity.v1
+    version: "1.0"
+    causality_level: CORRELATION
+    analysis_method: BayesianBootstrapDifferenceInMeans.v1
+calibration_default: UNCALIBRATED
+numpy_required: true
+numpy_location: server-side-only

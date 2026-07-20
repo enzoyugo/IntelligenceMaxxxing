@@ -1,0 +1,14 @@
+# Autonomy policy — Life Pack v0.1.0
+
+allowed:
+  - OBSERVE
+  - ANALYZE
+  - EXPLAIN
+denied:
+  - RECOMMEND
+  - EXECUTE
+  - OPTIMIZE_BEHAVIOR
+human_confirmation_required_for:
+  - hypothesis_activation
+  - sleep_threshold_hours
+  - minimum_meaningful_difference

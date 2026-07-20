@@ -1,0 +1,22 @@
+{
+  "event_type": "life.daily_check_in.completed.v1",
+  "subject": "self",
+  "knowledge_class": "OBSERVED",
+  "domain_pack": "life",
+  "context": {
+    "attributes": {
+      "sleep_hours": 7.5,
+      "productivity": 7.0,
+      "alcohol": 0,
+      "gym_done": 1,
+      "football_played": 0,
+      "social_activity": 0,
+      "mood": 6,
+      "stress": 4
+    }
+  },
+  "metadata": {
+    "source_event_type": "life.daily_check_in.completed.v1",
+    "synthetic": true
+  }
+}

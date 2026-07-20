@@ -1,0 +1,7 @@
+# Freshness policy — Life Pack v0.1.0
+
+observation_source: accepted_observations_projection
+maximum_evaluation_staleness: none_enforced_in_v0_1
+prospective_window_days_default: 60
+prospective_target_default: 30
+stale_after_window_expiry: mark_expired_inconclusive
