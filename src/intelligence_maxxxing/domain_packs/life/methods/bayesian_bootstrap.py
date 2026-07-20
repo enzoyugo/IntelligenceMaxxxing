@@ -107,12 +107,15 @@ def classify_belief_state(
     minimum_total_exploratory: int = 14,
     minimum_group_size_prospective: int = 7,
     expired: bool = False,
+    prospective_target: int | None = None,
+    critical_data_quality_failure: bool = False,
 ) -> str:
-    """Map bootstrap outputs to a BeliefState value (string for catalog payloads)."""
-    from intelligence_maxxxing.domain.common.epistemic import BeliefState, EvidencePhase
+    """Map bootstrap outputs to a BeliefState value (string for catalog payloads).
 
-    if expired:
-        return BeliefState.EXPIRED_INCONCLUSIVE.value
+    Stage 3.1: prospective terminal states require prospective_target and group
+    minima. Strong effects cannot bypass an incomplete target.
+    """
+    from intelligence_maxxxing.domain.common.epistemic import BeliefState, EvidencePhase
 
     total = n_sufficient + n_below
     if phase == EvidencePhase.BASELINE_EXPLORATORY.value:
@@ -129,11 +132,26 @@ def classify_belief_state(
         return BeliefState.EXPLORATORY_INCONCLUSIVE.value
 
     if phase == EvidencePhase.PROSPECTIVE_VALIDATION.value:
-        if (
-            n_sufficient < minimum_group_size_prospective
-            or n_below < minimum_group_size_prospective
-        ):
-            return BeliefState.INSUFFICIENT_EVIDENCE.value
+        if critical_data_quality_failure:
+            # Block support; still collecting or expire separately.
+            if expired:
+                return BeliefState.EXPIRED_INCONCLUSIVE.value
+            return BeliefState.PROSPECTIVE_COLLECTING.value
+
+        target = prospective_target if prospective_target is not None else 0
+        target_met = total >= target
+        groups_met = (
+            n_sufficient >= minimum_group_size_prospective
+            and n_below >= minimum_group_size_prospective
+        )
+
+        if expired and not (target_met and groups_met):
+            return BeliefState.EXPIRED_INCONCLUSIVE.value
+
+        if not target_met or not groups_met:
+            # Strong effect cannot early-stop before target/groups.
+            return BeliefState.PROSPECTIVE_COLLECTING.value
+
         if p_delta_ge_mmd >= 0.95 and ci90_low > 0.0:
             return BeliefState.PROSPECTIVE_SUPPORTED.value
         if (1.0 - p_delta_gt_0) >= 0.95:  # P(delta <= 0)
