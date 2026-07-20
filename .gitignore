@@ -19,6 +19,8 @@ htmlcov/
 # Environment and local state
 .env
 .dev/
+.run/
+backups/
 *.sqlite3
 *.db
 
@@ -27,3 +29,6 @@ htmlcov/
 .vscode/
 Thumbs.db
 .DS_Store
+
+# Local design references
+docs/design-references/apple/*.sketch

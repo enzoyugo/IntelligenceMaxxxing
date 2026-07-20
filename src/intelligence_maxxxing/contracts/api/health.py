@@ -10,3 +10,9 @@ class HealthData(BaseModel):
     service: str
     engine_version: str
     constitution_version: str
+    commit_sha: str | None = None
+    api_version: str | None = None
+    database: str | None = None
+    migration_revision: str | None = None
+    wellbeing_active: str | None = None
+    wellbeing_shadow: str | None = None

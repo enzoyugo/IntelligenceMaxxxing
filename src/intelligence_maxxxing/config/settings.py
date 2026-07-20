@@ -23,6 +23,8 @@ class EngineSettings(BaseSettings):
         alias="DATABASE_URL",
     )
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
+    # Set by startup scripts; never a secret. Used for build identity in health.
+    engine_commit_sha: str | None = Field(default=None, alias="ENGINE_COMMIT_SHA")
 
     # Migration safety (all default to safe/off). See MIGRATION_SAFETY.md.
     engine_destructive_migrations_allowed: bool = Field(

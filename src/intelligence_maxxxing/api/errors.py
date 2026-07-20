@@ -19,6 +19,7 @@ from intelligence_maxxxing.application.errors import (
     ObservationNotFoundError,
     PermissionDeniedError,
     StreamQuarantinedError,
+    UnknownFormulaError,
 )
 from intelligence_maxxxing.observability import get_logger
 
@@ -30,6 +31,7 @@ _STATUS_BY_ERROR: dict[type[ApplicationError], int] = {
     ObservationNotFoundError: status.HTTP_404_NOT_FOUND,
     HypothesisNotFoundError: status.HTTP_404_NOT_FOUND,
     ExperimentNotFoundError: status.HTTP_404_NOT_FOUND,
+    UnknownFormulaError: status.HTTP_400_BAD_REQUEST,
     AuthenticationError: status.HTTP_401_UNAUTHORIZED,
     PermissionDeniedError: status.HTTP_403_FORBIDDEN,
     HypothesisStateError: status.HTTP_409_CONFLICT,

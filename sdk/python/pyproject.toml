@@ -12,8 +12,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "intelligence-maxxxing-client"
-version = "0.2.0"
-description = "Standalone public HTTP client for the IntelligenceMaxxxing Engine API v1 (epistemic loop)"
+version = "0.3.0"
+description = "Standalone public HTTP client for the IntelligenceMaxxxing Engine API v1 (epistemic loop + wellbeing)"
 readme = "README.md"
 # Client only: keep the floor low so external apps are not forced onto 3.12.
 requires-python = ">=3.10"

@@ -135,3 +135,9 @@ class HypothesisStateError(ApplicationError):
     """The hypothesis is not in a valid state for the requested operation."""
 
     code = "HYPOTHESIS_STATE_ERROR"
+
+
+class UnknownFormulaError(ApplicationError):
+    """Requested wellbeing formula_id is not registered."""
+
+    code = "UNKNOWN_FORMULA"

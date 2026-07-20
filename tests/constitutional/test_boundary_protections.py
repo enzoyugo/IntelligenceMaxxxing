@@ -65,6 +65,8 @@ def test_llm_cannot_write_belief(app: FastAPI) -> None:
         "/api/v1/hypotheses/{hypothesis_id}/activate",
         "/api/v1/hypotheses/{hypothesis_id}/retire",
         "/api/v1/experiments/{experiment_id}/evaluate",
+        # Human wellbeing feedback (ANALYZE/EXPLAIN calibration) — not belief writes.
+        "/api/v1/wellbeing/feedback",
     }
     assert set(write_routes) == allowed_writes, (
         f"unexpected public write paths; allowed={allowed_writes}, found={write_routes}"

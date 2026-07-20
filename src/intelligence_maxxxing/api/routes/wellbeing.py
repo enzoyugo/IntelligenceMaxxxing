@@ -12,6 +12,7 @@ from intelligence_maxxxing.api.dependencies import (
 )
 from intelligence_maxxxing.api.envelope import build_meta, success_envelope
 from intelligence_maxxxing.application.auth import require_scope
+from intelligence_maxxxing.application.errors import UnknownFormulaError
 from intelligence_maxxxing.application.use_cases.wellbeing import WellbeingService
 from intelligence_maxxxing.config import EngineSettings
 from intelligence_maxxxing.contracts.api.envelope import ApiResponseEnvelope
@@ -38,7 +39,9 @@ def get_current_wellbeing(
 ) -> ApiResponseEnvelope:
     require_scope(auth, PermissionScope.READ_INTELLIGENCE)
     if formula_id not in {V1_ID, V2_ID}:
-        formula_id = V1_ID
+        raise UnknownFormulaError(
+            f"Unknown formula_id '{formula_id}'. Allowed: {V1_ID} (ACTIVE), {V2_ID} (SHADOW)."
+        )
     snapshot = service.get_current(auth, window_days=window_days, formula_id=formula_id)
     return success_envelope(
         WellbeingCurrentData(snapshot=snapshot).model_dump(),
