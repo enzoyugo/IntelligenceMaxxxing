@@ -43,3 +43,24 @@ def test_history_and_feedback(client: TestClient) -> None:
     )
     assert fb.status_code == 200
     assert fb.json()["data"]["accepted"] is True
+
+
+def test_v2_shadow_and_compare(client: TestClient) -> None:
+    v2 = client.get("/api/v1/wellbeing/current", params={"formula_id": "wellbeing_v2"})
+    assert v2.status_code == 200
+    snap = v2.json()["data"]["snapshot"]
+    assert snap["formula_id"] == "wellbeing_v2"
+    assert snap["formula_status"] == "SHADOW"
+    assert snap["formula_version"] == "2.0.0"
+
+    formula = client.get("/api/v1/wellbeing/formula", params={"formula_id": "wellbeing_v2"})
+    assert formula.status_code == 200
+    assert formula.json()["data"]["status"] == "SHADOW"
+    assert formula.json()["data"]["active"] is False
+
+    cmp_ = client.get("/api/v1/wellbeing/shadow/compare")
+    assert cmp_.status_code == 200
+    body = cmp_.json()["data"]
+    assert body["v1"]["formula_id"] == "wellbeing_v1"
+    assert body["v2"]["formula_id"] == "wellbeing_v2"
+    assert "divergences" in body

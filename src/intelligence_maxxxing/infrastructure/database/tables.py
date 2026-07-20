@@ -545,6 +545,7 @@ class WellbeingFormulaVersionRow(Base):
     description: Mapped[str] = mapped_column(String(2000), nullable=False)
     active: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    status: Mapped[str | None] = mapped_column(String(32), nullable=True)
 
 
 class WellbeingBaselineRow(Base):
@@ -601,6 +602,20 @@ class WellbeingScoreSnapshotRow(Base):
     explanation_json: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
     computed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     as_of_global_position: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    # V2 SHADOW additive fields (nullable; V1 rows untouched)
+    formula_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    input_fingerprint: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    change_state: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    happiness_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    stress_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    overall_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    sub_scores_json: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    plausible_range_json: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    happiness_acute: Mapped[float | None] = mapped_column(Float, nullable=True)
+    happiness_chronic: Mapped[float | None] = mapped_column(Float, nullable=True)
+    stress_acute: Mapped[float | None] = mapped_column(Float, nullable=True)
+    stress_chronic: Mapped[float | None] = mapped_column(Float, nullable=True)
+    stress_anticipatory: Mapped[float | None] = mapped_column(Float, nullable=True)
 
 
 class WellbeingFeedbackRow(Base):

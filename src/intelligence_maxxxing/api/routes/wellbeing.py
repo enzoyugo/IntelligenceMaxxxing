@@ -1,4 +1,4 @@
-"""Wellbeing Intelligence V1 endpoints (ANALYZE / EXPLAIN)."""
+"""Wellbeing Intelligence endpoints — V1 ACTIVE default, V2 SHADOW opt-in."""
 
 from typing import Annotated
 
@@ -20,6 +20,8 @@ from intelligence_maxxxing.contracts.api.wellbeing import (
     WellbeingFeedbackRequest,
     WellbeingHistoryData,
 )
+from intelligence_maxxxing.domain_packs.life.wellbeing_v1 import FORMULA_ID as V1_ID
+from intelligence_maxxxing.domain_packs.life.wellbeing_v2.registry import FORMULA_ID as V2_ID
 from intelligence_maxxxing.permissions import PermissionScope
 
 router = APIRouter(prefix="/wellbeing")
@@ -32,11 +34,31 @@ def get_current_wellbeing(
     service: Annotated[WellbeingService, Depends(get_wellbeing_service)],
     request_id: Annotated[str, Depends(get_request_id)],
     window_days: Annotated[int, Query(ge=3, le=90)] = 14,
+    formula_id: Annotated[str, Query()] = V1_ID,
 ) -> ApiResponseEnvelope:
     require_scope(auth, PermissionScope.READ_INTELLIGENCE)
-    snapshot = service.get_current(auth, window_days=window_days)
+    if formula_id not in {V1_ID, V2_ID}:
+        formula_id = V1_ID
+    snapshot = service.get_current(auth, window_days=window_days, formula_id=formula_id)
     return success_envelope(
         WellbeingCurrentData(snapshot=snapshot).model_dump(),
+        build_meta(request_id, settings.engine_version, domain_pack="life"),
+    )
+
+
+@router.get("/shadow/compare", response_model=ApiResponseEnvelope)
+def compare_shadow(
+    auth: AuthDep,
+    settings: Annotated[EngineSettings, Depends(get_app_settings)],
+    service: Annotated[WellbeingService, Depends(get_wellbeing_service)],
+    request_id: Annotated[str, Depends(get_request_id)],
+    window_days: Annotated[int, Query(ge=3, le=90)] = 14,
+) -> ApiResponseEnvelope:
+    """Run V1 ACTIVE and V2 SHADOW side-by-side. Never promotes V2."""
+    require_scope(auth, PermissionScope.READ_INTELLIGENCE)
+    data = service.compare_shadow(auth, window_days=window_days)
+    return success_envelope(
+        data.model_dump(),
         build_meta(request_id, settings.engine_version, domain_pack="life"),
     )
 
@@ -64,9 +86,10 @@ def get_wellbeing_explanation(
     service: Annotated[WellbeingService, Depends(get_wellbeing_service)],
     request_id: Annotated[str, Depends(get_request_id)],
     score_snapshot_id: Annotated[str | None, Query()] = None,
+    formula_id: Annotated[str, Query()] = V1_ID,
 ) -> ApiResponseEnvelope:
     require_scope(auth, PermissionScope.READ_INTELLIGENCE)
-    snapshot = service.get_explanation(auth, score_snapshot_id=score_snapshot_id)
+    snapshot = service.get_explanation(auth, score_snapshot_id=score_snapshot_id, formula_id=formula_id)
     return success_envelope(
         WellbeingCurrentData(snapshot=snapshot).model_dump(),
         build_meta(request_id, settings.engine_version, domain_pack="life"),
@@ -79,9 +102,10 @@ def get_wellbeing_formula(
     settings: Annotated[EngineSettings, Depends(get_app_settings)],
     service: Annotated[WellbeingService, Depends(get_wellbeing_service)],
     request_id: Annotated[str, Depends(get_request_id)],
+    formula_id: Annotated[str, Query()] = V1_ID,
 ) -> ApiResponseEnvelope:
     require_scope(auth, PermissionScope.READ_INTELLIGENCE)
-    formula = service.get_formula()
+    formula = service.get_formula(formula_id=formula_id)
     return success_envelope(
         formula.model_dump(),
         build_meta(request_id, settings.engine_version, domain_pack="life"),
@@ -96,7 +120,6 @@ def post_wellbeing_feedback(
     service: Annotated[WellbeingService, Depends(get_wellbeing_service)],
     request_id: Annotated[str, Depends(get_request_id)],
 ) -> ApiResponseEnvelope:
-    # Feedback is observational human signal, not RECOMMEND execution.
     require_scope(auth, PermissionScope.SUBMIT_OBSERVATION)
     result = service.submit_feedback(
         auth,

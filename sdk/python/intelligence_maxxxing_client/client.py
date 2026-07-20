@@ -336,10 +336,20 @@ class IntelligenceMaxxxingClient:
             meta=EnvelopeMeta(**envelope["meta"]),
         )
 
-    def get_wellbeing_current(self, *, window_days: int = 14) -> dict[str, Any]:
+    def get_wellbeing_current(
+        self, *, window_days: int = 14, formula_id: str = "wellbeing_v1"
+    ) -> dict[str, Any]:
         envelope = self._request(
             "GET",
             "/api/v1/wellbeing/current",
+            params={"window_days": window_days, "formula_id": formula_id},
+        )
+        return envelope["data"] or {}
+
+    def compare_wellbeing_shadow(self, *, window_days: int = 14) -> dict[str, Any]:
+        envelope = self._request(
+            "GET",
+            "/api/v1/wellbeing/shadow/compare",
             params={"window_days": window_days},
         )
         return envelope["data"] or {}

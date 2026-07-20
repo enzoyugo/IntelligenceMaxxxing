@@ -1,5 +1,9 @@
-"""Wellbeing Intelligence V2 (SHADOW) — registry and formula constants."""
+"""Wellbeing Intelligence V2 (SHADOW) — registry, pipeline, scenarios."""
 
+from intelligence_maxxxing.domain_packs.life.wellbeing_v2.pipeline import (
+    WellbeingV2Result,
+    compute_wellbeing_v2,
+)
 from intelligence_maxxxing.domain_packs.life.wellbeing_v2.registry import (
     ACCUMULATION_RETENTION,
     ACUTE_CHRONIC_ANTICIPATORY,
@@ -34,4 +38,6 @@ __all__ = [
     "STRESS_WEIGHTS",
     "TANH_TEMPERATURE",
     "WEIGHTS",
+    "WellbeingV2Result",
+    "compute_wellbeing_v2",
 ]
