@@ -1,5 +1,10 @@
-"""Evidence domain objects (contract-only in Stage 0)."""
+"""Evidence domain objects."""
 
-from intelligence_maxxxing.domain.evidence.models import Evidence
+from intelligence_maxxxing.domain.evidence.models import (
+    AnalysisResult,
+    ConfoundingDiagnostic,
+    Evidence,
+    EvidenceSnapshot,
+)
 
-__all__ = ["Evidence"]
+__all__ = ["AnalysisResult", "ConfoundingDiagnostic", "Evidence", "EvidenceSnapshot"]

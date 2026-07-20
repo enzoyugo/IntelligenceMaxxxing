@@ -14,6 +14,9 @@ from intelligence_maxxxing.application.errors import IdempotencyRaceDetected
 from intelligence_maxxxing.application.ports import UnitOfWorkPort
 from intelligence_maxxxing.infrastructure.audit import SqlAlchemyAuditStore
 from intelligence_maxxxing.infrastructure.event_store import SqlAlchemyEventStore
+from intelligence_maxxxing.infrastructure.repositories.epistemic import (
+    SqlAlchemyEpistemicStore,
+)
 from intelligence_maxxxing.infrastructure.repositories.idempotency import (
     SqlAlchemyIdempotencyStore,
 )
@@ -41,6 +44,7 @@ class SqlAlchemyUnitOfWork(UnitOfWorkPort):
         self.identity = SqlAlchemyIdentityStore(self._session)
         self.projections = SqlAlchemyProjectionStore(self._session)
         self.integrity = SqlAlchemyIntegrityStore(self._session)
+        self.epistemic = SqlAlchemyEpistemicStore(self._session)
         return self
 
     def __exit__(

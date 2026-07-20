@@ -50,19 +50,32 @@ def test_application_cannot_mutate_belief(app: FastAPI) -> None:
 
 
 def test_llm_cannot_write_belief(app: FastAPI) -> None:
-    """There is no belief-write surface at all: not for apps, not for LLMs.
+    """There is no direct belief-write surface: not for apps, not for LLMs.
 
-    Stage 0 has no LLM integration. This test protects the architecture that
-    will make an LLM belief-write impossible: beliefs are frozen objects, the
-    only write path in the system is observation submission, and the event
-    store accepts events but never mutates state.
+    Stage 3 allows governed hypothesis/experiment evaluation (which produces
+    belief snapshots internally), but no POST/PUT/PATCH/DELETE route may write
+    beliefs directly. Belief objects remain frozen; only GET routes expose them.
     """
-    write_routes = [
+    write_routes = sorted(
         route.path for route in _api_routes(app) if (route.methods or set()) & WRITE_METHODS
-    ]
-    assert write_routes == ["/api/v1/observations"], (
-        f"the only public write path in Stage 0 is observation submission; found: {write_routes}"
     )
+    allowed_writes = {
+        "/api/v1/observations",
+        "/api/v1/hypotheses",
+        "/api/v1/hypotheses/{hypothesis_id}/activate",
+        "/api/v1/hypotheses/{hypothesis_id}/retire",
+        "/api/v1/experiments/{experiment_id}/evaluate",
+    }
+    assert set(write_routes) == allowed_writes, (
+        f"unexpected public write paths; allowed={allowed_writes}, found={write_routes}"
+    )
+
+    belief_write_routes = [
+        f"{route.methods} {route.path}"
+        for route in _api_routes(app)
+        if "belief" in route.path.lower() and (route.methods or set()) & WRITE_METHODS
+    ]
+    assert not belief_write_routes, f"beliefs must never be written via HTTP: {belief_write_routes}"
 
     belief = _belief()
     with pytest.raises(ValidationError):

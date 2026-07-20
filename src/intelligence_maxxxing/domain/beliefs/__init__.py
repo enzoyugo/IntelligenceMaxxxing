@@ -1,5 +1,5 @@
-"""Belief domain objects (contract-only in Stage 0)."""
+"""Belief domain objects."""
 
-from intelligence_maxxxing.domain.beliefs.models import Belief
+from intelligence_maxxxing.domain.beliefs.models import Belief, BeliefSnapshot
 
-__all__ = ["Belief"]
+__all__ = ["Belief", "BeliefSnapshot"]

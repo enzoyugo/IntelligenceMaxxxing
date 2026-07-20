@@ -88,14 +88,67 @@ class ActorType(StrEnum):
 
 
 class HypothesisStatus(StrEnum):
-    """Hypothesis lifecycle (Constitution, Article 13)."""
+    """Hypothesis lifecycle (Constitution Art. 13; Stage 3 first epistemic loop).
+
+    Stage 0 names (UNDER_OBSERVATION, UNDER_TEST, …) remain for contract
+    compatibility. Stage 3 operational statuses are the primary path.
+    """
 
     PROPOSED = "PROPOSED"
-    UNDER_OBSERVATION = "UNDER_OBSERVATION"
-    UNDER_TEST = "UNDER_TEST"
-    SUPPORTED = "SUPPORTED"
+    ACTIVE = "ACTIVE"
+    OBSERVING = "OBSERVING"
+    EVALUATED = "EVALUATED"
     WEAKENED = "WEAKENED"
-    REJECTED_UNDER_CURRENT_CONDITIONS = "REJECTED_UNDER_CURRENT_CONDITIONS"
+    SUPPORTED = "SUPPORTED"
     INCONCLUSIVE = "INCONCLUSIVE"
     RETIRED = "RETIRED"
+    # Legacy Stage 0 aliases (still valid enum members for stored contracts).
+    UNDER_OBSERVATION = "UNDER_OBSERVATION"
+    UNDER_TEST = "UNDER_TEST"
+    REJECTED_UNDER_CURRENT_CONDITIONS = "REJECTED_UNDER_CURRENT_CONDITIONS"
     REACTIVATED = "REACTIVATED"
+
+
+class EvidencePhase(StrEnum):
+    """Which cohort an EvidenceSnapshot describes."""
+
+    BASELINE_EXPLORATORY = "BASELINE_EXPLORATORY"
+    PROSPECTIVE_VALIDATION = "PROSPECTIVE_VALIDATION"
+
+
+class BeliefState(StrEnum):
+    """Operational belief classification for the sleep/productivity protocol."""
+
+    INSUFFICIENT_EVIDENCE = "INSUFFICIENT_EVIDENCE"
+    EXPLORATORY_POSITIVE = "EXPLORATORY_POSITIVE"
+    EXPLORATORY_NEGATIVE = "EXPLORATORY_NEGATIVE"
+    EXPLORATORY_INCONCLUSIVE = "EXPLORATORY_INCONCLUSIVE"
+    PROSPECTIVE_SUPPORTED = "PROSPECTIVE_SUPPORTED"
+    PROSPECTIVE_WEAKENED = "PROSPECTIVE_WEAKENED"
+    PROSPECTIVE_INCONCLUSIVE = "PROSPECTIVE_INCONCLUSIVE"
+    EXPIRED_INCONCLUSIVE = "EXPIRED_INCONCLUSIVE"
+
+
+class CalibrationState(StrEnum):
+    """Until enough historical experiments exist, beliefs stay uncalibrated."""
+
+    UNCALIBRATED = "UNCALIBRATED"
+    PARTIALLY_CALIBRATED = "PARTIALLY_CALIBRATED"
+    CALIBRATED = "CALIBRATED"
+
+
+class AgreementWithPrior(StrEnum):
+    STRENGTHENED = "STRENGTHENED"
+    WEAKENED = "WEAKENED"
+    CONTRADICTED = "CONTRADICTED"
+    UNCHANGED = "UNCHANGED"
+    NOT_COMPARABLE = "NOT_COMPARABLE"
+
+
+class LearningChangeType(StrEnum):
+    PRIOR_STRENGTHENED = "PRIOR_STRENGTHENED"
+    PRIOR_WEAKENED = "PRIOR_WEAKENED"
+    PRIOR_CONTRADICTED = "PRIOR_CONTRADICTED"
+    FIRST_PROSPECTIVE = "FIRST_PROSPECTIVE"
+    EXPIRED = "EXPIRED"
+    RETIRED = "RETIRED"

@@ -18,6 +18,20 @@ from intelligence_maxxxing.application.errors import (
     EventPayloadInvalidError,
     UnregisteredEventTypeError,
 )
+from intelligence_maxxxing.contracts.events.epistemic_events import (
+    BeliefCreatedPayload,
+    BeliefUpdatedPayload,
+    EvidenceEvaluatedPayload,
+    ExperimentCompletedPayload,
+    ExperimentExpiredInconclusivePayload,
+    ExperimentObservationWindowOpenedPayload,
+    ExperimentRegisteredPayload,
+    HypothesisActivatedPayload,
+    HypothesisProposedPayload,
+    HypothesisRetiredPayload,
+    LearningRecordedPayload,
+    OutcomeEvaluatedPayload,
+)
 from intelligence_maxxxing.contracts.events.governance_events import (
     IntegrityCheckCompletedPayload,
     IntegrityStreamQuarantinedPayload,
@@ -187,6 +201,81 @@ _SPECS: Final[tuple[EventTypeSpec, ...]] = (
         IntegrityStreamReleasedPayload,
         "integrity.unquarantine_stream",
         sensitivity=EventSensitivity.HIGH,
+    ),
+    # --- Stage 3 first epistemic loop -----------------------------------------
+    _spec(
+        "HypothesisProposed",
+        "Hypothesis",
+        HypothesisProposedPayload,
+        "hypotheses.propose",
+    ),
+    _spec(
+        "HypothesisActivated",
+        "Hypothesis",
+        HypothesisActivatedPayload,
+        "hypotheses.activate",
+    ),
+    _spec(
+        "HypothesisRetired",
+        "Hypothesis",
+        HypothesisRetiredPayload,
+        "hypotheses.retire",
+    ),
+    _spec(
+        "ExperimentRegistered",
+        "Experiment",
+        ExperimentRegisteredPayload,
+        "hypotheses.activate",
+    ),
+    _spec(
+        "ExperimentObservationWindowOpened",
+        "Experiment",
+        ExperimentObservationWindowOpenedPayload,
+        "hypotheses.activate",
+    ),
+    _spec(
+        "EvidenceEvaluated",
+        "Evidence",
+        EvidenceEvaluatedPayload,
+        "experiments.evaluate",
+    ),
+    _spec(
+        "BeliefCreated",
+        "Belief",
+        BeliefCreatedPayload,
+        "experiments.evaluate",
+        permitted_consumers=("engine.projections", "engine.audit"),
+    ),
+    _spec(
+        "BeliefUpdated",
+        "Belief",
+        BeliefUpdatedPayload,
+        "experiments.evaluate",
+        permitted_consumers=("engine.projections", "engine.audit"),
+    ),
+    _spec(
+        "OutcomeEvaluated",
+        "Outcome",
+        OutcomeEvaluatedPayload,
+        "experiments.evaluate",
+    ),
+    _spec(
+        "LearningRecorded",
+        "Learning",
+        LearningRecordedPayload,
+        "experiments.evaluate",
+    ),
+    _spec(
+        "ExperimentCompleted",
+        "Experiment",
+        ExperimentCompletedPayload,
+        "experiments.evaluate",
+    ),
+    _spec(
+        "ExperimentExpiredInconclusive",
+        "Experiment",
+        ExperimentExpiredInconclusivePayload,
+        "experiments.evaluate",
     ),
 )
 

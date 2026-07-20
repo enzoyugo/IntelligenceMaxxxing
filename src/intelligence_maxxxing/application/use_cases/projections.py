@@ -62,6 +62,20 @@ _SKIPPED_EVENT_TYPES = frozenset(
         "IntegrityStreamQuarantined",
         "IntegrityStreamVerified",
         "IntegrityStreamReleased",
+        # Stage 3 epistemic loop — handled by epistemic projection rebuild
+        "HypothesisProposed",
+        "HypothesisActivated",
+        "HypothesisRetired",
+        "ExperimentRegistered",
+        "ExperimentObservationWindowOpened",
+        "EvidenceEvaluated",
+        "BeliefCreated",
+        "BeliefUpdated",
+        "OutcomeEvaluated",
+        "LearningRecorded",
+        "ExperimentProgressUpdated",
+        "ExperimentCompleted",
+        "ExperimentExpiredInconclusive",
     }
 )
 

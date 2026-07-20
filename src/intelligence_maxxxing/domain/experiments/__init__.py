@@ -1,5 +1,5 @@
-"""Experiment domain objects (contract-only in Stage 0)."""
+"""Experiment domain objects."""
 
-from intelligence_maxxxing.domain.experiments.models import Experiment
+from intelligence_maxxxing.domain.experiments.models import Experiment, ExperimentProtocol
 
-__all__ = ["Experiment"]
+__all__ = ["Experiment", "ExperimentProtocol"]

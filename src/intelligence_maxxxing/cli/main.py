@@ -7,6 +7,9 @@ import sys
 from datetime import datetime
 
 from intelligence_maxxxing import API_VERSION
+from intelligence_maxxxing.application.use_cases.epistemic_projections import (
+    EpistemicProjectionRebuildService,
+)
 from intelligence_maxxxing.application.use_cases.identity_admin import IdentityAdminService
 from intelligence_maxxxing.application.use_cases.integrity import (
     IntegrityVerificationService,
@@ -27,7 +30,10 @@ from intelligence_maxxxing.permissions import PermissionScope
 
 
 def _build_services() -> tuple[
-    IdentityAdminService, ProjectionRebuildService, IntegrityVerificationService
+    IdentityAdminService,
+    ProjectionRebuildService,
+    IntegrityVerificationService,
+    EpistemicProjectionRebuildService,
 ]:
     settings = get_settings()
     engine = create_database_engine(settings.database_url)
@@ -54,7 +60,13 @@ def _build_services() -> tuple[
         health_provider=health,
         violation_hook=LoggingIntegrityViolationHook(),
     )
-    return identity, projections, integrity
+    epistemic = EpistemicProjectionRebuildService(
+        uow=SqlAlchemyUnitOfWork(session_factory),
+        engine_version=settings.engine_version,
+        api_version=API_VERSION,
+        health_provider=health,
+    )
+    return identity, projections, integrity, epistemic
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -105,6 +117,15 @@ def main(argv: list[str] | None = None) -> int:
         help="Non-destructively verify accepted_observations against the ledger",
     )
 
+    sub.add_parser(
+        "rebuild-epistemic",
+        help="Rebuild Stage 3 epistemic projections from engine_events",
+    )
+    sub.add_parser(
+        "verify-epistemic",
+        help="Non-destructively verify epistemic projections against the ledger",
+    )
+
     for name, help_text in (
         ("inspect-stream", "Show a stream head and its integrity checkpoint"),
         ("verify-stream", "Run a FULL integrity verification of one stream"),
@@ -118,7 +139,7 @@ def main(argv: list[str] | None = None) -> int:
             p_stream.add_argument("--reason", required=True)
 
     args = parser.parse_args(argv)
-    identity, projections, integrity = _build_services()
+    identity, projections, integrity, epistemic = _build_services()
 
     if args.command == "bootstrap-owner":
         tenant, user = identity.bootstrap_owner(args.tenant_name, args.owner_name)
@@ -190,6 +211,26 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "verify-projections":
         verify_report = projections.verify()
+        print(
+            f"projection={verify_report.projection_name} matches={verify_report.matches} "
+            f"quarantined={verify_report.quarantined} live_rows={verify_report.live_rows} "
+            f"shadow_rows={verify_report.shadow_rows} "
+            f"live_checksum={verify_report.live_checksum} "
+            f"shadow_checksum={verify_report.shadow_checksum}"
+        )
+        return 0 if verify_report.ok else 2
+
+    if args.command == "rebuild-epistemic":
+        result = epistemic.rebuild(from_scratch=True)
+        print(
+            f"projection={result.projection_name} version={result.projection_version} "
+            f"scanned={result.events_scanned} rows={result.rows_written} "
+            f"position={result.last_global_position} checksum={result.checksum}"
+        )
+        return 0
+
+    if args.command == "verify-epistemic":
+        verify_report = epistemic.verify()
         print(
             f"projection={verify_report.projection_name} matches={verify_report.matches} "
             f"quarantined={verify_report.quarantined} live_rows={verify_report.live_rows} "

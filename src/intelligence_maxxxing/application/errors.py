@@ -117,3 +117,21 @@ class StreamReleaseBlockedError(ApplicationError):
     (or the required authorization/repair was not provided)."""
 
     code = "STREAM_RELEASE_BLOCKED"
+
+
+class HypothesisNotFoundError(ApplicationError):
+    """The requested hypothesis does not exist (within the caller's scope)."""
+
+    code = "HYPOTHESIS_NOT_FOUND"
+
+
+class ExperimentNotFoundError(ApplicationError):
+    """The requested experiment does not exist (within the caller's scope)."""
+
+    code = "EXPERIMENT_NOT_FOUND"
+
+
+class HypothesisStateError(ApplicationError):
+    """The hypothesis is not in a valid state for the requested operation."""
+
+    code = "HYPOTHESIS_STATE_ERROR"

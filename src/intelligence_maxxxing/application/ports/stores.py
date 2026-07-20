@@ -370,6 +370,268 @@ class ProjectionStorePort(ABC):
     def delete_checkpoint(self, projection_name: str, projection_version: str) -> None: ...
 
 
+class ProjectedHypothesis(BaseModel):
+    """One row of the current_hypotheses projection (derived state)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    hypothesis_id: str
+    tenant_id: str
+    owner_id: str
+    application_id: str
+    domain_pack: str
+    template_id: str
+    template_version: str
+    statement: str
+    direction: str
+    causality_level: str
+    status: str
+    human_confirmed: bool
+    parameters: dict[str, object] | None = None
+    proposed_at: datetime
+    activated_at: datetime | None = None
+    retired_at: datetime | None = None
+    experiment_id: str | None = None
+    audit_id: str
+    event_id: str
+    global_position: int
+    updated_at: datetime
+
+
+class ProjectedExperiment(BaseModel):
+    """One row of the current_experiments projection (derived state)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    experiment_id: str
+    tenant_id: str
+    owner_id: str
+    application_id: str
+    hypothesis_id: str
+    protocol_version: str
+    analysis_method: str
+    baseline_cutoff: datetime
+    prospective_start: datetime
+    prospective_target: int
+    maximum_window_days: int
+    minimum_group_size: int
+    minimum_meaningful_difference: float
+    sleep_threshold_hours: float
+    random_seed_policy: str
+    status: str
+    pre_registered_at: datetime
+    audit_id: str
+    event_id: str
+    global_position: int
+    updated_at: datetime
+
+
+class ProjectedBeliefSnapshot(BaseModel):
+    """One row of the belief_snapshots projection (derived, versioned)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    belief_id: str
+    tenant_id: str
+    owner_id: str
+    application_id: str
+    hypothesis_id: str
+    evidence_id: str
+    previous_belief_id: str | None = None
+    belief_state: str
+    model_probability: float
+    credible_interval_low: float
+    credible_interval_high: float
+    estimated_effect: float
+    minimum_meaningful_difference: float
+    data_confidence: str
+    method_confidence: str
+    conclusion_confidence: str
+    recommendation_confidence: str
+    calibration_state: str
+    causality_level: str
+    limitations: tuple[str, ...] = ()
+    is_current: bool = False
+    created_at: datetime
+    audit_id: str
+    event_id: str
+    global_position: int
+
+
+class ProjectedEvidenceSnapshot(BaseModel):
+    """One row of the evidence_snapshots projection (derived state)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    evidence_id: str
+    tenant_id: str
+    owner_id: str
+    application_id: str
+    hypothesis_id: str
+    experiment_id: str
+    phase: str
+    source_observation_ids: tuple[str, ...]
+    source_event_ids: tuple[str, ...]
+    source_hash: str
+    eligible_count: int
+    excluded_count: int
+    exclusion_reasons: dict[str, int] = Field(default_factory=dict)
+    group_counts: dict[str, int] = Field(default_factory=dict)
+    descriptive_statistics: dict[str, object] = Field(default_factory=dict)
+    analysis_parameters: dict[str, object] = Field(default_factory=dict)
+    analysis_result: dict[str, object] | None = None
+    confounding_diagnostics: tuple[dict[str, object], ...] = ()
+    limitations: tuple[str, ...] = ()
+    belief_state: str
+    generated_at: datetime
+    audit_id: str
+    event_id: str
+    global_position: int
+
+
+class ProjectedExperimentProgress(BaseModel):
+    """Live experiment progress counters (derived state)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    experiment_id: str
+    hypothesis_id: str
+    tenant_id: str
+    owner_id: str
+    application_id: str
+    baseline_eligible: int = 0
+    baseline_sufficient: int = 0
+    baseline_below: int = 0
+    prospective_eligible: int = 0
+    prospective_sufficient: int = 0
+    prospective_below: int = 0
+    prospective_target: int
+    window_days_remaining: int | None = None
+    status: str
+    current_belief_state: str | None = None
+    last_evaluated_at: datetime | None = None
+    updated_at: datetime
+
+
+class ProjectedLearningRecord(BaseModel):
+    """One row of the learning_history projection (derived state)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    learning_id: str
+    tenant_id: str
+    owner_id: str
+    application_id: str
+    hypothesis_id: str
+    previous_belief_id: str | None = None
+    new_belief_id: str
+    outcome_evaluation_id: str
+    change_type: str
+    what_changed: str
+    why_changed: str
+    what_remains_unknown: str
+    next_evidence_needed: str
+    created_at: datetime
+    audit_id: str
+    event_id: str
+    global_position: int
+
+
+class EpistemicStorePort(ABC):
+    """Stage 3 epistemic projections: hypotheses, experiments, beliefs, evidence."""
+
+    @abstractmethod
+    def upsert_hypothesis(self, row: ProjectedHypothesis) -> None: ...
+
+    @abstractmethod
+    def get_hypothesis(
+        self, owner_id: str, application_id: str, hypothesis_id: str
+    ) -> ProjectedHypothesis | None: ...
+
+    @abstractmethod
+    def list_hypotheses(
+        self, owner_id: str, application_id: str, *, limit: int = 50
+    ) -> Sequence[ProjectedHypothesis]: ...
+
+    @abstractmethod
+    def upsert_experiment(self, row: ProjectedExperiment) -> None: ...
+
+    @abstractmethod
+    def get_experiment(
+        self, owner_id: str, application_id: str, experiment_id: str
+    ) -> ProjectedExperiment | None: ...
+
+    @abstractmethod
+    def get_experiment_for_hypothesis(
+        self, owner_id: str, application_id: str, hypothesis_id: str
+    ) -> ProjectedExperiment | None: ...
+
+    @abstractmethod
+    def upsert_belief_snapshot(self, row: ProjectedBeliefSnapshot) -> None:
+        """Append/update belief snapshot; marks prior rows for the hypothesis not current."""
+
+    @abstractmethod
+    def get_belief_snapshot(
+        self, owner_id: str, application_id: str, belief_id: str
+    ) -> ProjectedBeliefSnapshot | None: ...
+
+    @abstractmethod
+    def get_current_belief(
+        self, owner_id: str, application_id: str, hypothesis_id: str
+    ) -> ProjectedBeliefSnapshot | None: ...
+
+    @abstractmethod
+    def list_belief_snapshots(
+        self, owner_id: str, application_id: str, hypothesis_id: str
+    ) -> Sequence[ProjectedBeliefSnapshot]: ...
+
+    @abstractmethod
+    def upsert_evidence_snapshot(self, row: ProjectedEvidenceSnapshot) -> None: ...
+
+    @abstractmethod
+    def get_evidence_snapshot(
+        self, owner_id: str, application_id: str, evidence_id: str
+    ) -> ProjectedEvidenceSnapshot | None: ...
+
+    @abstractmethod
+    def upsert_experiment_progress(self, row: ProjectedExperimentProgress) -> None: ...
+
+    @abstractmethod
+    def get_experiment_progress(
+        self, owner_id: str, application_id: str, experiment_id: str
+    ) -> ProjectedExperimentProgress | None: ...
+
+    @abstractmethod
+    def append_learning_record(self, row: ProjectedLearningRecord) -> None: ...
+
+    @abstractmethod
+    def list_learning_records(
+        self, owner_id: str, application_id: str, hypothesis_id: str
+    ) -> Sequence[ProjectedLearningRecord]: ...
+
+    @abstractmethod
+    def delete_all_epistemic_projections(self) -> int:
+        """Clear all Stage 3 epistemic projection tables (rebuildable derived state)."""
+
+    @abstractmethod
+    def list_all_hypotheses(self) -> Sequence[ProjectedHypothesis]: ...
+
+    @abstractmethod
+    def list_all_experiments(self) -> Sequence[ProjectedExperiment]: ...
+
+    @abstractmethod
+    def list_all_belief_snapshots(self) -> Sequence[ProjectedBeliefSnapshot]: ...
+
+    @abstractmethod
+    def list_all_evidence_snapshots(self) -> Sequence[ProjectedEvidenceSnapshot]: ...
+
+    @abstractmethod
+    def list_all_experiment_progress(self) -> Sequence[ProjectedExperimentProgress]: ...
+
+    @abstractmethod
+    def list_all_learning_records(self) -> Sequence[ProjectedLearningRecord]: ...
+
+
 class StreamStatus(StrEnum):
     ACTIVE = "ACTIVE"
     QUARANTINED = "QUARANTINED"
@@ -464,6 +726,7 @@ class UnitOfWorkPort(ABC):
     identity: IdentityStorePort
     projections: ProjectionStorePort
     integrity: IntegrityStorePort
+    epistemic: EpistemicStorePort
 
     @abstractmethod
     def __enter__(self) -> "UnitOfWorkPort": ...

@@ -1,5 +1,5 @@
-"""Hypothesis domain objects (contract-only in Stage 0)."""
+"""Hypothesis domain objects."""
 
-from intelligence_maxxxing.domain.hypotheses.models import Hypothesis
+from intelligence_maxxxing.domain.hypotheses.models import Hypothesis, HypothesisParameters
 
-__all__ = ["Hypothesis"]
+__all__ = ["Hypothesis", "HypothesisParameters"]
