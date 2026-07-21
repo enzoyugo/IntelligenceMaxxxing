@@ -1,13 +1,22 @@
-"""Unit tests for wellbeing_v1 formulas."""
+"""Unit tests for wellbeing_v1 formulas (canonical 0–100 inputs on CheckInDay)."""
 
 from datetime import date, timedelta
 
+from intelligence_maxxxing.domain_packs.life.measurement_scale import (
+    MeasurementScale,
+    to_canonical_0_100,
+)
 from intelligence_maxxxing.domain_packs.life.wellbeing_v1 import (
     CheckInDay,
     DataSufficiency,
     EarlyWarning,
+    FORMULA_VERSION,
     compute_wellbeing_v1,
 )
+
+
+def _likert(v: float) -> float:
+    return to_canonical_0_100(v, MeasurementScale.LIKERT_1_10)
 
 
 def _day(
@@ -21,19 +30,24 @@ def _day(
     gym: bool = True,
     alcohol: bool = False,
 ) -> CheckInDay:
+    """Author Likert 1–10; store canonical 0–100 (productive path contract)."""
     base = date(2026, 7, 10)
     return CheckInDay(
         day=base + timedelta(days=offset),
-        happiness=happiness,
-        stress=stress,
-        energy=energy,
-        productivity=productivity,
+        happiness=_likert(happiness),
+        stress=_likert(stress),
+        energy=_likert(energy),
+        productivity=_likert(productivity),
         sleep_hours=sleep,
         gym_done=gym,
         social_activity=False,
         alcohol=alcohol,
         global_position=offset + 1,
     )
+
+
+def test_formula_version_is_1_2() -> None:
+    assert FORMULA_VERSION == "1.2"
 
 
 def test_cold_start_insufficient_data() -> None:
@@ -63,7 +77,6 @@ def test_agency_independent_of_stress() -> None:
     assert high.features["agency_score"] > low.features["agency_score"]
     assert high.stress is not None and low.stress is not None
     assert high.stress > low.stress
-    # Same sample size → epistemic confidence in the same maturity band.
     assert high.confidence is not None and low.confidence is not None
     assert high.confidence <= 60.0  # 7–13 day cap
 

@@ -14,8 +14,15 @@ from enum import StrEnum
 from statistics import mean
 from typing import Any
 
+from intelligence_maxxxing.domain_packs.life.measurement_scale import (
+    MEASUREMENT_CONTRACT_VERSION,
+    NORMALIZATION_VERSION,
+    ScaleExtractionReport,
+    resolve_score_fields,
+)
+
 FORMULA_ID = "wellbeing_v1"
-FORMULA_VERSION = "1.1"
+FORMULA_VERSION = "1.2"
 LIFE_EVENT_TYPE = "life.daily_check_in.completed.v1"
 
 COLD_START_MIN_DAYS = 3
@@ -78,22 +85,6 @@ def _clamp(value: float, lo: float = 0.0, hi: float = 100.0) -> float:
     return max(lo, min(hi, value))
 
 
-def _scale_1_10_to_100(value: float) -> float:
-    return _clamp((value - 1.0) / 9.0 * 100.0)
-
-
-def _to_score_100(raw: float) -> tuple[float, str]:
-    """Normalize Likert/score inputs exactly once into 0–100.
-
-    LifeOS Daily Flow historically stores happiness/stress/energy/productivity
-    on ~0–100. Unit tests and older fixtures use 1–10 Likert. Values ≤10 are
-    treated as Likert; values >10 are treated as already 0–100.
-    """
-    if raw <= 10.0:
-        return _scale_1_10_to_100(raw), "1_10"
-    return _clamp(raw), "0_100"
-
-
 def _sample_maturity_cap(sample: int) -> float:
     """Hard ceiling on epistemic confidence from sample size alone."""
     if sample <= 2:
@@ -113,9 +104,14 @@ def _is_extreme(score: float | None) -> bool:
     return score <= 5.0 or score >= 95.0
 
 
-def extract_checkin_days(rows: list[Any]) -> list[CheckInDay]:
-    """Extract daily check-in features from projected observation rows."""
+def extract_checkin_days(
+    rows: list[Any],
+    *,
+    report: ScaleExtractionReport | None = None,
+) -> list[CheckInDay]:
+    """Extract daily check-ins; score fields stored as canonical 0–100."""
     by_day: dict[date, CheckInDay] = {}
+    scale_report = report or ScaleExtractionReport()
     ordered = sorted(
         rows,
         key=lambda r: (int(getattr(r, "global_position", 0)), getattr(r, "observation_id", "")),
@@ -137,6 +133,7 @@ def extract_checkin_days(rows: list[Any]) -> list[CheckInDay]:
             continue
         ctx = row.context if isinstance(getattr(row, "context", None), dict) else {}
         attrs = ctx.get("attributes") if isinstance(ctx.get("attributes"), dict) else {}
+        source_ids = list(getattr(row, "source_ids", None) or [])
 
         def _f(key: str) -> float | None:
             raw = attrs.get(key)
@@ -162,12 +159,19 @@ def extract_checkin_days(rows: list[Any]) -> list[CheckInDay]:
         # First-write wins (lowest global_position) for a calendar day.
         if day in by_day:
             continue
+        scores = resolve_score_fields(
+            attrs,
+            event_type=LIFE_EVENT_TYPE,
+            source_ids=source_ids,
+            metadata=meta,
+            report=scale_report,
+        )
         by_day[day] = CheckInDay(
             day=day,
-            happiness=_f("happiness"),
-            stress=_f("stress"),
-            energy=_f("energy"),
-            productivity=_f("productivity"),
+            happiness=scores["happiness"],
+            stress=scores["stress"],
+            energy=scores["energy"],
+            productivity=scores["productivity"],
             sleep_hours=_f("sleep_hours"),
             gym_done=_b("gym_done"),
             social_activity=_b("social_activity"),
@@ -203,14 +207,12 @@ def compute_wellbeing_v1(
     *,
     window_days: int = 14,
     as_of: date | None = None,
+    scale_report: ScaleExtractionReport | None = None,
 ) -> WellbeingResult:
     """Compute Happiness / Stress / Confidence for a trailing window.
 
-    Happiness uses reported happiness + energy + sleep quality signals.
-    Stress uses reported stress + alcohol + meeting load proxies (meetings not
-    always present; alcohol and low sleep amplify).
-    Confidence is separate: productivity consistency + gym adherence + energy
-    stability — not a transform of stress.
+    Score fields on CheckInDay must already be canonical 0–100 (normalized once
+    in extract_checkin_days / measurement_scale). No magnitude inference here.
     """
     if as_of is None:
         as_of = max((d.day for d in days), default=date.today())
@@ -222,6 +224,7 @@ def compute_wellbeing_v1(
     sample = len(window)
 
     max_pos = max((d.global_position for d in window), default=None)
+    report = scale_report or ScaleExtractionReport()
 
     if sample == 0:
         return WellbeingResult(
@@ -236,7 +239,7 @@ def compute_wellbeing_v1(
             missing_days=window_days,
             period_start=start.isoformat(),
             period_end=as_of.isoformat(),
-            features={"window_days": window_days},
+            features={"window_days": window_days, **report.as_features()},
             contributors=[],
             suggested_actions=[
                 {
@@ -255,6 +258,7 @@ def compute_wellbeing_v1(
             baselines={},
         )
 
+    # Already canonical 0–100 from measurement_scale.resolve_score_fields.
     happ_raw = [d.happiness for d in window if d.happiness is not None]
     stress_raw = [d.stress for d in window if d.stress is not None]
     energy_raw = [d.energy for d in window if d.energy is not None]
@@ -271,24 +275,10 @@ def compute_wellbeing_v1(
     gym_rate = _avg(gym_flags)
     alcohol_rate = _avg(alcohol_flags) or 0.0
 
-    scales_detected: list[str] = []
-
-    def _norm(raw: float | None) -> float | None:
-        if raw is None:
-            return None
-        score, scale = _to_score_100(raw)
-        scales_detected.append(scale)
-        return score
-
-    happ_n = _norm(avg_happ)
-    stress_n = _norm(avg_stress)
-    energy_n = _norm(avg_energy)
-    prod_n = _norm(avg_prod)
-    input_scale = (
-        "mixed"
-        if len(set(scales_detected)) > 1
-        else (scales_detected[0] if scales_detected else "unknown")
-    )
+    happ_n = avg_happ
+    stress_n = avg_stress
+    energy_n = avg_energy
+    prod_n = avg_prod
 
     # Happiness (0-100): independent composite — NOT (100 - stress). Clamp once at end.
     happiness: float | None = None
@@ -318,10 +308,9 @@ def compute_wellbeing_v1(
         energy_c = energy_n if energy_n is not None else 50.0
         gym_c = (gym_rate * 100.0) if gym_rate is not None else 40.0
         stability = 100.0
-        energy_normed = [_to_score_100(e)[0] for e in energy_raw]
-        if len(energy_normed) >= 2:
-            e_mean = mean(energy_normed)
-            variance = mean([(e - e_mean) ** 2 for e in energy_normed])
+        if len(energy_raw) >= 2:
+            e_mean = mean(energy_raw)
+            variance = mean([(e - e_mean) ** 2 for e in energy_raw])
             # Coefficient tuned for 0–100 units (was *8 for 1–10 Likert).
             stability = _clamp(100.0 - variance * 0.08)
         agency_score = round(
@@ -361,6 +350,15 @@ def compute_wellbeing_v1(
         0.45 * day_coverage + 0.35 * domain_coverage + 0.20 * sufficiency_factor
     )
     epistemic_raw *= calibration_factor
+    # Penalize non-explicit / ambiguous / invalid scale resolution.
+    scale_penalty = 1.0
+    if report.legacy_count > 0:
+        scale_penalty *= 0.92
+    if report.ambiguous_count > 0:
+        scale_penalty *= max(0.55, 1.0 - 0.12 * report.ambiguous_count)
+    if report.invalid_count > 0:
+        scale_penalty *= max(0.50, 1.0 - 0.10 * report.invalid_count)
+    epistemic_raw *= scale_penalty
     maturity_cap = _sample_maturity_cap(sample)
     confidence = round(min(epistemic_raw, maturity_cap), 2)
 
@@ -368,6 +366,8 @@ def compute_wellbeing_v1(
     extreme_low_evidence = thin_evidence and (_is_extreme(happiness) or _is_extreme(stress))
     if extreme_low_evidence:
         confidence = round(min(confidence, maturity_cap) * 0.7, 2)
+    if report.ambiguous_count > 0:
+        confidence = round(min(confidence, 40.0), 2)
 
     warning = EarlyWarning.NONE
     if sufficiency == DataSufficiency.COLD_START:
@@ -477,7 +477,6 @@ def compute_wellbeing_v1(
         "gym_rate": gym_rate,
         "alcohol_rate": alcohol_rate,
         "happiness_neq_100_minus_stress": True,
-        "input_scale_detected": input_scale,
         "avg_happiness_normalized": happ_n,
         "avg_stress_normalized": stress_n,
         "happiness_pre_clamp": happ_pre_clamp,
@@ -489,6 +488,7 @@ def compute_wellbeing_v1(
         "day_coverage": round(day_coverage, 4),
         "calibration_status": calibration_status,
         "extreme_score_low_evidence": extreme_low_evidence,
+        "scale_penalty": round(scale_penalty, 4),
         "missing_domains": [
             name
             for name, present in (
@@ -502,6 +502,7 @@ def compute_wellbeing_v1(
             )
             if not present
         ],
+        **report.as_features(),
     }
 
     baselines = {
@@ -539,9 +540,12 @@ def compute_wellbeing_v1(
                 "Agency (productivity/energy/gym) is stored separately as features.agency_score."
             ),
             "input_scale_policy": (
-                "Raw values ≤10 treated as 1–10 Likert; values >10 treated as 0–100. "
-                "Normalized once before composition; clamp only at the end."
+                "Explicit per-field scale or known legacy adapter only. "
+                f"Normalized once to 0–100 ({NORMALIZATION_VERSION}); "
+                "no magnitude inference; clamp only after composition."
             ),
+            "measurement_contract_version": MEASUREMENT_CONTRACT_VERSION,
+            "input_normalization_version": NORMALIZATION_VERSION,
             "autonomy": "ANALYZE/EXPLAIN only; suggested_actions are not RECOMMEND capability.",
             "cold_start_policy": f"Scores marked COLD_START below {COLD_START_MIN_DAYS} days.",
             "calibration_status": calibration_status,

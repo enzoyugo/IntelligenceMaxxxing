@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from typing import Final
 
 FORMULA_ID: Final = "wellbeing_v2"
-FORMULA_VERSION: Final = "2.0.0"
+FORMULA_VERSION: Final = "2.1.0"
 FORMULA_STATUS: Final = "SHADOW"
 
 TANH_TEMPERATURE: Final = 1.2

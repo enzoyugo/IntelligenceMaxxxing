@@ -8,6 +8,11 @@ from dataclasses import asdict, dataclass
 from datetime import date, timedelta
 from typing import Any
 
+from intelligence_maxxxing.domain_packs.life.measurement_scale import (
+    MEASUREMENT_CONTRACT_VERSION,
+    NORMALIZATION_VERSION,
+    ScaleExtractionReport,
+)
 from intelligence_maxxxing.domain_packs.life.wellbeing_v2.change_detection import detect_change_state
 from intelligence_maxxxing.domain_packs.life.wellbeing_v2.confidence import compose_confidence
 from intelligence_maxxxing.domain_packs.life.wellbeing_v2.features import build_features
@@ -156,11 +161,13 @@ def compute_wellbeing_v2(
     window_days: int = 14,
     as_of: date | None = None,
     label_count: int = 0,
+    scale_report: ScaleExtractionReport | None = None,
 ) -> WellbeingV2Result:
+    report = scale_report or ScaleExtractionReport()
     if rows and isinstance(rows[0], DayRecord):
         days = list(rows)  # type: ignore[arg-type]
     else:
-        days = extract_day_records(list(rows))  # type: ignore[arg-type]
+        days = extract_day_records(list(rows), report=report)  # type: ignore[arg-type]
 
     features = build_features(
         days,
@@ -176,6 +183,14 @@ def compute_wellbeing_v2(
         stress_score=stress.score,
         label_count=label_count,
     )
+    # Ambiguous / invalid scales must not yield high confidence.
+    overall = conf.overall
+    if report.ambiguous_count > 0:
+        overall = min(overall, 40.0)
+    if report.invalid_count > 0:
+        overall = min(overall, max(25.0, overall * 0.85))
+    if report.legacy_count > 0 and report.explicit_count == 0:
+        overall = round(overall * 0.92, 2)
     change = detect_change_state(happiness, stress, sample_size=features.sample_size)
 
     h_block = {
@@ -208,7 +223,7 @@ def compute_wellbeing_v2(
     max_pos = max((d.global_position for d in days if d.day <= features.as_of), default=None)
     period_start = (features.as_of - timedelta(days=window_days - 1)).isoformat()
 
-    actions = _recommendations(change, h_block, s_block, conf.overall)
+    actions = _recommendations(change, h_block, s_block, overall)
     fp = _fingerprint(days, features.as_of, window_days)
 
     return WellbeingV2Result(
@@ -220,7 +235,7 @@ def compute_wellbeing_v2(
         input_fingerprint=fp,
         happiness=h_block,
         stress=s_block,
-        overall_confidence=conf.overall,
+        overall_confidence=overall,
         change_state=change,
         contributors=happiness.contributors[:4] + stress.contributors[:4],
         protective_factors=stress.protective_factors,
@@ -237,6 +252,7 @@ def compute_wellbeing_v2(
             "baselines": features.baselines,
             "load_state": features.load_state,
             "sleep_debt_3d": features.sleep_debt_3d,
+            **report.as_features(),
         },
         suggested_actions=actions,
         explanation={
@@ -250,6 +266,12 @@ def compute_wellbeing_v2(
             "autonomy": "ANALYZE/EXPLAIN only; suggested_actions are not RECOMMEND capability.",
             "formula_status": FORMULA_STATUS,
             "non_clinical": True,
+            "measurement_contract_version": MEASUREMENT_CONTRACT_VERSION,
+            "input_normalization_version": NORMALIZATION_VERSION,
+            "input_scale_policy": (
+                "Canonical 0–100 inputs from explicit scale or known legacy adapter; "
+                "no magnitude inference."
+            ),
         },
         sample_size=features.sample_size,
         missing_days=features.missing_days,
@@ -258,7 +280,7 @@ def compute_wellbeing_v2(
         as_of_global_position=max_pos,
         happiness_score=happiness.score,
         stress_score=stress.score,
-        confidence_score=conf.overall,
+        confidence_score=overall,
     )
 
 

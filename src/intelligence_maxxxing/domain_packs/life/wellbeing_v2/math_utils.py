@@ -21,9 +21,17 @@ def tanh_map(latent: float, temperature: float = 1.2) -> float:
 
 
 def scale_1_10(value: float | None) -> float | None:
+    """Legacy helper for Likert authoring in tests only — not used on productive paths."""
     if value is None:
         return None
     return clamp((float(value) - 5.5) / 4.5, -1.0, 1.0)
+
+
+def scale_0_100(value: float | None) -> float | None:
+    """Map canonical 0–100 score to composition signal [-1, 1]."""
+    if value is None:
+        return None
+    return clamp((float(value) - 50.0) / 50.0, -1.0, 1.0)
 
 
 def mad(values: list[float]) -> float:

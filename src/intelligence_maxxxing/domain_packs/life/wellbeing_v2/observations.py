@@ -1,10 +1,19 @@
-"""Observation extraction for wellbeing_v2 (Life check-ins + optional attrs)."""
+"""Observation extraction for wellbeing_v2 (Life check-ins + optional attrs).
+
+Score fields are normalized once to canonical 0–100 via the measurement scale
+contract (no magnitude inference).
+"""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any
+
+from intelligence_maxxxing.domain_packs.life.measurement_scale import (
+    ScaleExtractionReport,
+    resolve_score_fields,
+)
 
 LIFE_EVENT_TYPE = "life.daily_check_in.completed.v1"
 WORKOUT_EVENT_TYPE = "life.workout.completed.v1"
@@ -62,10 +71,18 @@ def _day(occurred: Any) -> date | None:
     return None
 
 
-def extract_day_records(rows: list[Any]) -> list[DayRecord]:
-    """First-write (lowest global_position) daily check-ins; merge workout flags."""
+def extract_day_records(
+    rows: list[Any],
+    *,
+    report: ScaleExtractionReport | None = None,
+) -> list[DayRecord]:
+    """First-write (lowest global_position) daily check-ins; merge workout flags.
+
+    Happiness/stress/energy/productivity are stored as canonical 0–100.
+    """
     checkins: dict[date, DayRecord] = {}
     workouts: set[date] = set()
+    scale_report = report or ScaleExtractionReport()
 
     ordered = sorted(
         rows,
@@ -89,6 +106,14 @@ def extract_day_records(rows: list[Any]) -> list[DayRecord]:
         if day in checkins:
             continue
         attrs = _attrs(row)
+        source_ids = list(getattr(row, "source_ids", None) or [])
+        scores = resolve_score_fields(
+            attrs,
+            event_type=LIFE_EVENT_TYPE,
+            source_ids=source_ids,
+            metadata=meta,
+            report=scale_report,
+        )
         observed: list[str] = []
         for key in (
             "happiness",
@@ -101,14 +126,16 @@ def extract_day_records(rows: list[Any]) -> list[DayRecord]:
             "alcohol",
             "meetings_count",
         ):
-            if attrs.get(key) is not None:
+            if key in scores and scores[key] is not None:
+                observed.append(key)
+            elif key not in scores and attrs.get(key) is not None:
                 observed.append(key)
         checkins[day] = DayRecord(
             day=day,
-            happiness=_f(attrs, "happiness"),
-            stress=_f(attrs, "stress"),
-            energy=_f(attrs, "energy"),
-            productivity=_f(attrs, "productivity"),
+            happiness=scores["happiness"],
+            stress=scores["stress"],
+            energy=scores["energy"],
+            productivity=scores["productivity"],
             sleep_hours=_f(attrs, "sleep_hours"),
             gym_done=_b(attrs, "gym_done"),
             social_activity=_b(attrs, "social_activity"),

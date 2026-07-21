@@ -10,7 +10,7 @@ from intelligence_maxxxing.domain_packs.life.wellbeing_v2.scenarios import SCENA
 
 def test_formula_is_shadow() -> None:
     assert FORMULA_STATUS == "SHADOW"
-    assert FORMULA_VERSION == "2.0.0"
+    assert FORMULA_VERSION == "2.1.0"
 
 
 def test_happiness_not_100_minus_stress_exciting_deadline() -> None:

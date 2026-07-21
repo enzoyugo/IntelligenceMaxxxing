@@ -46,13 +46,14 @@ def test_v2_vs_v1_shadow_comparison_runs() -> None:
 def test_no_future_leakage() -> None:
     """Observations after as_of must not affect scores."""
     base = date(2026, 5, 1)
+    # Canonical 0–100 on DayRecord (Likert mid ≈ 44.44; high/low extremes).
     past = [
         DayRecord(
             day=base + timedelta(days=i),
-            happiness=5,
-            stress=5,
-            energy=5,
-            productivity=5,
+            happiness=50.0,
+            stress=50.0,
+            energy=50.0,
+            productivity=50.0,
             sleep_hours=7.0,
             gym_done=False,
             social_activity=False,
@@ -66,10 +67,10 @@ def test_no_future_leakage() -> None:
     ]
     future = DayRecord(
         day=base + timedelta(days=10),
-        happiness=10,
-        stress=1,
-        energy=10,
-        productivity=10,
+        happiness=100.0,
+        stress=0.0,
+        energy=100.0,
+        productivity=100.0,
         sleep_hours=9.0,
         gym_done=True,
         social_activity=True,

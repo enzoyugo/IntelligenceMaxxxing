@@ -4,8 +4,19 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 
+from intelligence_maxxxing.domain_packs.life.measurement_scale import (
+    MeasurementScale,
+    to_canonical_0_100,
+)
 from intelligence_maxxxing.domain_packs.life.wellbeing_v2.observations import DayRecord
 from intelligence_maxxxing.domain_packs.life.wellbeing_v2.pipeline import compute_wellbeing_v2
+
+
+def _likert(value: float | None) -> float | None:
+    """Scenario authoring uses Likert 1–10; DayRecord stores canonical 0–100."""
+    if value is None:
+        return None
+    return to_canonical_0_100(float(value), MeasurementScale.LIKERT_1_10)
 
 
 def _day(
@@ -24,10 +35,10 @@ def _day(
 ) -> DayRecord:
     return DayRecord(
         day=base + timedelta(days=offset),
-        happiness=happiness,
-        stress=stress,
-        energy=energy,
-        productivity=productivity,
+        happiness=_likert(happiness),
+        stress=_likert(stress),
+        energy=_likert(energy),
+        productivity=_likert(productivity),
         sleep_hours=sleep,
         gym_done=gym,
         social_activity=social,

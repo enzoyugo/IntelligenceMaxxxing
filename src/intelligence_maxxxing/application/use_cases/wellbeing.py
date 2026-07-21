@@ -25,6 +25,7 @@ from intelligence_maxxxing.domain_packs.life.wellbeing_v1 import (
 from intelligence_maxxxing.domain_packs.life.wellbeing_v1 import (
     FORMULA_VERSION as V1_VERSION,
 )
+from intelligence_maxxxing.domain_packs.life.measurement_scale import ScaleExtractionReport
 from intelligence_maxxxing.domain_packs.life.wellbeing_v1 import (
     compute_wellbeing_v1,
     extract_checkin_days,
@@ -187,7 +188,10 @@ class WellbeingService:
         feature_id = new_id("wbf")
 
         if formula_id == V2_ID:
-            result = compute_wellbeing_v2(rows, window_days=window_days)
+            scale_report = ScaleExtractionReport()
+            result = compute_wellbeing_v2(
+                rows, window_days=window_days, scale_report=scale_report
+            )
             view = _v2_to_view(score_id, result, now)
             early = view.early_warning
             sufficiency = view.data_sufficiency
@@ -226,8 +230,11 @@ class WellbeingService:
             )
             fid, fver = V2_ID, V2_VERSION
         else:
-            days = extract_checkin_days(rows)
-            result = compute_wellbeing_v1(days, window_days=window_days)
+            scale_report = ScaleExtractionReport()
+            days = extract_checkin_days(rows, report=scale_report)
+            result = compute_wellbeing_v1(
+                days, window_days=window_days, scale_report=scale_report
+            )
             view = _v1_to_view(score_id, result, now)
             early = str(result.early_warning)
             sufficiency = str(result.data_sufficiency)

@@ -12,7 +12,7 @@ from intelligence_maxxxing.domain_packs.life.wellbeing_v2.math_utils import (
     mad,
     mean_or_none,
     robust_z,
-    scale_1_10,
+    scale_0_100,
 )
 from intelligence_maxxxing.domain_packs.life.wellbeing_v2.observations import DayRecord
 
@@ -70,7 +70,8 @@ def build_features(
         new_load = 0.0
         recovery = 0.0
         if d.stress is not None:
-            new_load += max(0.0, (d.stress - 5.0) / 5.0)
+            # Canonical 0–100: stress above midpoint contributes load.
+            new_load += max(0.0, (d.stress - 50.0) / 50.0)
         if d.meetings_count is not None:
             new_load += min(1.0, d.meetings_count / 8.0) * 0.4
         if d.alcohol:
@@ -83,7 +84,7 @@ def build_features(
             recovery += 0.1
         if d.workout_done or d.gym_done:
             recovery += 0.08
-        if d.energy is not None and d.energy >= 7:
+        if d.energy is not None and d.energy >= 70.0:
             recovery += 0.05
         load = retention * load + new_load - recovery
         load = clamp(load, 0.0, 3.5)
@@ -122,21 +123,24 @@ def build_features(
         else:
             cur_f = float(cur)
         if attr in {"happiness", "stress", "energy", "productivity"}:
-            absolute = scale_1_10(cur_f)
+            absolute = scale_0_100(cur_f)
         elif attr == "sleep_hours":
             absolute = clamp((cur_f - 7.5) / 2.0, -1.0, 1.0)
         else:
             absolute = clamp(cur_f, -1.0, 1.0)
-        if len(hist_vals) < 3 or mad(hist_vals) < 0.2:
+        # MAD threshold scaled for canonical 0–100 (was 0.2 on Likert 1–10).
+        mad_floor = 2.0 if attr in {"happiness", "stress", "energy", "productivity"} else 0.2
+        if len(hist_vals) < 3 or mad(hist_vals) < mad_floor:
             # Low variance / cold start: absolute scale carries the signal
             return absolute
-        relative = clamp(robust_z(cur_f, hist_vals) / 3.5, -1.0, 1.0)
+        rz_eps = 2.5 if attr in {"happiness", "stress", "energy", "productivity"} else 0.25
+        relative = clamp(robust_z(cur_f, hist_vals, epsilon=rz_eps) / 3.5, -1.0, 1.0)
         # Blend so personal deviations matter without zeroing stable good/bad days
         return clamp(0.55 * relative + 0.45 * (absolute or 0.0))
 
     signals: dict[str, float | None] = {
-        "happiness_raw": scale_1_10(latest.happiness) if latest else None,
-        "stress_raw": scale_1_10(latest.stress) if latest else None,
+        "happiness_raw": scale_0_100(latest.happiness) if latest else None,
+        "stress_raw": scale_0_100(latest.stress) if latest else None,
         "energy_rz": rz("energy", energy_hist),
         "happiness_rz": rz("happiness", happ_hist),
         "stress_rz": rz("stress", stress_hist),

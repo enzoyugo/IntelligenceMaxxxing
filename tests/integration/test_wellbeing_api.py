@@ -21,7 +21,7 @@ def test_current_cold_start(client: TestClient) -> None:
     snap = body["data"]["snapshot"]
     assert snap["data_sufficiency"] == "COLD_START"
     assert snap["happiness"] is None
-    assert snap["formula_version"] == "1.0"
+    assert snap["formula_version"] == "1.2"
     assert any(a.get("capability_class") != "RECOMMEND" for a in snap["suggested_actions"])
 
 
@@ -51,7 +51,7 @@ def test_v2_shadow_and_compare(client: TestClient) -> None:
     snap = v2.json()["data"]["snapshot"]
     assert snap["formula_id"] == "wellbeing_v2"
     assert snap["formula_status"] == "SHADOW"
-    assert snap["formula_version"] == "2.0.0"
+    assert snap["formula_version"] == "2.1.0"
 
     formula = client.get("/api/v1/wellbeing/formula", params={"formula_id": "wellbeing_v2"})
     assert formula.status_code == 200
