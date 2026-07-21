@@ -8,7 +8,7 @@
 
 | Repo | Baseline | Final HEAD |
 |------|----------|------------|
-| Engine | `ecb9831` | `daf810c` |
+| Engine | `ecb9831` | `5f9af7f` |
 | LifeOS | `a3ebe14` | `cf40e97` |
 
 `main == origin/main` on both after push. Working trees still contain unrelated local WIP (Engine: Research Factory M3A untracked; LifeOS: prior hierarchy/docs edits) — isolation commits themselves are pushed.
