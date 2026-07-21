@@ -629,3 +629,18 @@ class WellbeingFeedbackRow(Base):
     rating: Mapped[str] = mapped_column(String(32), nullable=False)
     note: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class ObservationExclusionRow(Base):
+    """Append-only exclusion registry — original observations remain in the ledger."""
+
+    __tablename__ = "observation_exclusions"
+
+    exclusion_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    target_observation_id: Mapped[str] = mapped_column(String(64), nullable=False, unique=True, index=True)
+    reason_code: Mapped[str] = mapped_column(String(128), nullable=False)
+    reason: Mapped[str] = mapped_column(String(4000), nullable=False)
+    invalidated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    actor_system: Mapped[str] = mapped_column(String(128), nullable=False)
+    evidence_report: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

@@ -322,7 +322,8 @@ class WellbeingService:
                         )
                     )
             session.commit()
-        return view
+        # Return features that include input-selection metadata (also persisted above).
+        return view.model_copy(update={"features": features_json})
 
     def compare_shadow(self, auth: AuthContext, *, window_days: int = 14) -> WellbeingShadowCompareData:
         v1 = self.get_current(auth, window_days=window_days, formula_id=V1_ID)

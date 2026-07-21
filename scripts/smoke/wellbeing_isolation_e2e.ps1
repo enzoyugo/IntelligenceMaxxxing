@@ -1,8 +1,6 @@
 # Isolated wellbeing scale + isolation smoke.
 # Creates a TEMPORARY PostgreSQL database, migrates to head, starts Engine on a
 # non-production port, runs SDK submits with TEST provenance, then tears down.
-#
-# Never targets the personal production ledger.
 param(
     [switch]$Isolated,
     [switch]$KeepArtifacts,
@@ -13,7 +11,7 @@ param(
 $ErrorActionPreference = "Stop"
 if (-not $PSBoundParameters.ContainsKey("Isolated")) { $Isolated = $true }
 
-function Fail($Message) {
+function Fail([string]$Message) {
     Write-Host "ISOLATION_SMOKE FAILED: $Message" -ForegroundColor Red
     Cleanup
     exit 1
@@ -29,8 +27,7 @@ function Cleanup {
     }
     if ($script:dbName -and -not $KeepArtifacts) {
         try {
-            docker compose exec -T postgres psql -U intelligence -d postgres `
-                -c "DROP DATABASE IF EXISTS $($script:dbName) WITH (FORCE)" | Out-Null
+            docker compose exec -T postgres psql -U intelligence -d postgres -c "DROP DATABASE IF EXISTS $($script:dbName) WITH (FORCE)" | Out-Null
         } catch { }
     }
 }
@@ -49,13 +46,13 @@ if ($enginePort -eq 8100 -and -not $AllowProductionAudit) {
     Fail "refusing production Engine port 8100"
 }
 
-$ready = docker compose exec -T postgres pg_isready 2>&1
-if ($LASTEXITCODE -ne 0 -or ("$ready" -notmatch "accepting connections")) {
+$ready = docker compose exec -T postgres pg_isready 2>&1 | Out-String
+if ($LASTEXITCODE -ne 0 -or ($ready -notmatch "accepting connections")) {
     docker compose up -d
     Start-Sleep -Seconds 4
-    $ready = docker compose exec -T postgres pg_isready 2>&1
-    if ($LASTEXITCODE -ne 0 -or ("$ready" -notmatch "accepting connections")) {
-        Fail "postgres not available — isolated smoke requires Docker PostgreSQL (no personal DB fallback)"
+    $ready = docker compose exec -T postgres pg_isready 2>&1 | Out-String
+    if ($LASTEXITCODE -ne 0 -or ($ready -notmatch "accepting connections")) {
+        Fail "postgres not available - isolated smoke requires Docker PostgreSQL (no personal DB fallback)"
     }
 }
 
@@ -64,10 +61,8 @@ if ($script:dbName -notmatch "iso_smoke") {
     Fail "refusing non-isolated database name"
 }
 
-docker compose exec -T postgres psql -U intelligence -d postgres `
-    -c "DROP DATABASE IF EXISTS $($script:dbName) WITH (FORCE)" | Out-Null
-docker compose exec -T postgres psql -U intelligence -d postgres `
-    -c "CREATE DATABASE $($script:dbName)" | Out-Null
+docker compose exec -T postgres psql -U intelligence -d postgres -c "DROP DATABASE IF EXISTS $($script:dbName) WITH (FORCE)" | Out-Null
+docker compose exec -T postgres psql -U intelligence -d postgres -c "CREATE DATABASE $($script:dbName)" | Out-Null
 if ($LASTEXITCODE -ne 0) { Fail "could not create temp database" }
 
 $env:DATABASE_URL = "postgresql+psycopg://intelligence:intelligence@127.0.0.1:5432/$($script:dbName)"
@@ -83,7 +78,7 @@ if ($LASTEXITCODE -ne 0) { Fail "bootstrap-owner failed" }
 $ownerId = ($boot | Select-String "owner_id=(.+)").Matches[0].Groups[1].Value
 $reg = python -m intelligence_maxxxing.cli register-application --display-name "ISO-Smoke-App" --owner-id $ownerId
 $appId = ($reg | Select-String "application_id=(.+)").Matches[0].Groups[1].Value
-foreach ($s in "SUBMIT_OBSERVATION", "READ_AUDIT", "READ_INTELLIGENCE") {
+foreach ($s in @("SUBMIT_OBSERVATION", "READ_AUDIT", "READ_INTELLIGENCE")) {
     python -m intelligence_maxxxing.cli grant-scope --application-id $appId --scope $s | Out-Null
 }
 $cred = python -m intelligence_maxxxing.cli create-credential --application-id $appId
