@@ -10,6 +10,11 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any
 
+from intelligence_maxxxing.domain_packs.life.exclusion_registry import exclusion_id_set
+from intelligence_maxxxing.domain_packs.life.input_selection import (
+    SelectionReport,
+    select_effective_observations,
+)
 from intelligence_maxxxing.domain_packs.life.measurement_scale import (
     ScaleExtractionReport,
     resolve_score_fields,
@@ -75,17 +80,23 @@ def extract_day_records(
     rows: list[Any],
     *,
     report: ScaleExtractionReport | None = None,
+    selection_report: SelectionReport | None = None,
 ) -> list[DayRecord]:
     """First-write (lowest global_position) daily check-ins; merge workout flags.
 
     Happiness/stress/energy/productivity are stored as canonical 0–100.
+    Applies the same wellbeing_input_selection_v1 filter as V1.
     """
     checkins: dict[date, DayRecord] = {}
     workouts: set[date] = set()
     scale_report = report or ScaleExtractionReport()
+    effective, sel = select_effective_observations(rows, exclusion_ids=exclusion_id_set())
+    if selection_report is not None:
+        selection_report.included = sel.included
+        selection_report.decisions = sel.decisions
 
     ordered = sorted(
-        rows,
+        effective,
         key=lambda r: (int(getattr(r, "global_position", 0)), getattr(r, "observation_id", "")),
     )
     for row in ordered:

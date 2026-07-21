@@ -14,6 +14,11 @@ from enum import StrEnum
 from statistics import mean
 from typing import Any
 
+from intelligence_maxxxing.domain_packs.life.exclusion_registry import exclusion_id_set
+from intelligence_maxxxing.domain_packs.life.input_selection import (
+    SelectionReport,
+    select_effective_observations,
+)
 from intelligence_maxxxing.domain_packs.life.measurement_scale import (
     MEASUREMENT_CONTRACT_VERSION,
     NORMALIZATION_VERSION,
@@ -108,12 +113,21 @@ def extract_checkin_days(
     rows: list[Any],
     *,
     report: ScaleExtractionReport | None = None,
+    selection_report: SelectionReport | None = None,
 ) -> list[CheckInDay]:
-    """Extract daily check-ins; score fields stored as canonical 0–100."""
+    """Extract daily check-ins; score fields stored as canonical 0–100.
+
+    Applies wellbeing_input_selection_v1 before first-write-wins so tests cannot
+    capture a calendar day ahead of personal observations.
+    """
     by_day: dict[date, CheckInDay] = {}
     scale_report = report or ScaleExtractionReport()
+    effective, sel = select_effective_observations(rows, exclusion_ids=exclusion_id_set())
+    if selection_report is not None:
+        selection_report.included = sel.included
+        selection_report.decisions = sel.decisions
     ordered = sorted(
-        rows,
+        effective,
         key=lambda r: (int(getattr(r, "global_position", 0)), getattr(r, "observation_id", "")),
     )
     for row in ordered:

@@ -8,6 +8,7 @@ from dataclasses import asdict, dataclass
 from datetime import date, timedelta
 from typing import Any
 
+from intelligence_maxxxing.domain_packs.life.input_selection import SelectionReport
 from intelligence_maxxxing.domain_packs.life.measurement_scale import (
     MEASUREMENT_CONTRACT_VERSION,
     NORMALIZATION_VERSION,
@@ -162,12 +163,16 @@ def compute_wellbeing_v2(
     as_of: date | None = None,
     label_count: int = 0,
     scale_report: ScaleExtractionReport | None = None,
+    selection_report: SelectionReport | None = None,
 ) -> WellbeingV2Result:
     report = scale_report or ScaleExtractionReport()
+    sel_report = selection_report or SelectionReport()
     if rows and isinstance(rows[0], DayRecord):
         days = list(rows)  # type: ignore[arg-type]
     else:
-        days = extract_day_records(list(rows), report=report)  # type: ignore[arg-type]
+        days = extract_day_records(
+            list(rows), report=report, selection_report=sel_report
+        )  # type: ignore[arg-type]
 
     features = build_features(
         days,
@@ -253,6 +258,7 @@ def compute_wellbeing_v2(
             "load_state": features.load_state,
             "sleep_debt_3d": features.sleep_debt_3d,
             **report.as_features(),
+            **sel_report.as_features(),
         },
         suggested_actions=actions,
         explanation={

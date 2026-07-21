@@ -25,6 +25,7 @@ from intelligence_maxxxing.domain_packs.life.wellbeing_v1 import (
 from intelligence_maxxxing.domain_packs.life.wellbeing_v1 import (
     FORMULA_VERSION as V1_VERSION,
 )
+from intelligence_maxxxing.domain_packs.life.input_selection import SelectionReport
 from intelligence_maxxxing.domain_packs.life.measurement_scale import ScaleExtractionReport
 from intelligence_maxxxing.domain_packs.life.wellbeing_v1 import (
     compute_wellbeing_v1,
@@ -189,13 +190,17 @@ class WellbeingService:
 
         if formula_id == V2_ID:
             scale_report = ScaleExtractionReport()
+            selection_report = SelectionReport()
             result = compute_wellbeing_v2(
-                rows, window_days=window_days, scale_report=scale_report
+                rows,
+                window_days=window_days,
+                scale_report=scale_report,
+                selection_report=selection_report,
             )
             view = _v2_to_view(score_id, result, now)
             early = view.early_warning
             sufficiency = view.data_sufficiency
-            features_json = result.features
+            features_json = {**result.features, **selection_report.as_features()}
             contributors = result.contributors
             actions = result.suggested_actions
             explanation = result.explanation
@@ -231,14 +236,17 @@ class WellbeingService:
             fid, fver = V2_ID, V2_VERSION
         else:
             scale_report = ScaleExtractionReport()
-            days = extract_checkin_days(rows, report=scale_report)
+            selection_report = SelectionReport()
+            days = extract_checkin_days(
+                rows, report=scale_report, selection_report=selection_report
+            )
             result = compute_wellbeing_v1(
                 days, window_days=window_days, scale_report=scale_report
             )
             view = _v1_to_view(score_id, result, now)
             early = str(result.early_warning)
             sufficiency = str(result.data_sufficiency)
-            features_json = result.features
+            features_json = {**result.features, **selection_report.as_features()}
             contributors = result.contributors
             actions = result.suggested_actions
             explanation = result.explanation

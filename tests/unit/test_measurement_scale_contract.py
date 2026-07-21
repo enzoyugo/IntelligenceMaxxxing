@@ -141,7 +141,11 @@ class _Row:
 
         self.domain_pack = "life"
         self.subject = "daily_check_in"
-        self.metadata = {"life_event_type": "life.daily_check_in.completed.v1"}
+        self.metadata = {
+            "life_event_type": "life.daily_check_in.completed.v1",
+            "observation_purpose": "USER_OBSERVATION",
+            "subject_scope": "PERSONAL",
+        }
         self.occurred_at = datetime(2026, 7, 10, tzinfo=UTC)
         self.global_position = pos
         self.observation_id = f"obs-{pos}"
@@ -153,7 +157,7 @@ class _Row:
             attrs["energy_scale"] = scale
             attrs["productivity_scale"] = scale
             attrs["measurement_contract_version"] = MEASUREMENT_CONTRACT_VERSION
-        self.context = {"attributes": attrs}
+        self.context = {"attributes": attrs, "environment": "PRODUCTION"}
 
 
 def test_extract_preserves_5_on_0_100() -> None:
