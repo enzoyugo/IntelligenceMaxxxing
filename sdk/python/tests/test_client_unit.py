@@ -83,11 +83,42 @@ def test_submit_observation_sends_bearer_and_idem_key() -> None:
         scope="personal",
         domain_pack="life",
         idempotency_key=key,
+        environment="PRODUCTION",
+        metadata={"observation_purpose": "USER_OBSERVATION"},
     )
     assert accepted.observation_id == "obs_1"
     assert accepted.replayed is False
     assert seen["auth"] == "Bearer imx_sk_test"
     assert seen["idem"] == key
+
+
+def test_submit_observation_includes_environment() -> None:
+    captured: dict[str, object] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        import json
+
+        captured["body"] = json.loads(request.content.decode())
+        return _ok(
+            {"observation_id": "obs_1", "event_id": "evt_1", "audit_id": "aud_1", "replayed": False}
+        )
+
+    client = _client(handler)
+    client.submit_observation(
+        subject="daily_check_in",
+        statement="Daily check-in recorded",
+        knowledge_class="OBSERVED_FACT",
+        observed_by="iso-smoke",
+        scope="personal",
+        domain_pack="life",
+        idempotency_key=new_idempotency_key(),
+        environment="TEST",
+        metadata={"observation_purpose": "SMOKE_TEST", "subject_scope": "TEST_PROFILE"},
+    )
+    body = captured["body"]
+    assert isinstance(body, dict)
+    assert body["context"]["environment"] == "TEST"
+    assert body["metadata"]["observation_purpose"] == "SMOKE_TEST"
 
 
 def test_get_audit_parses_view() -> None:

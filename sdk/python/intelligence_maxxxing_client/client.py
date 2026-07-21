@@ -169,7 +169,11 @@ class IntelligenceMaxxxingClient:
         source_ids: list[str] | None = None,
         metadata: dict[str, Any] | None = None,
         context_attributes: dict[str, Any] | None = None,
+        environment: str | None = None,
     ) -> ObservationAcceptedView:
+        context: dict[str, Any] = {"scope": scope, "attributes": context_attributes or {}}
+        if environment is not None:
+            context["environment"] = environment
         body: dict[str, Any] = {
             "schema_version": schema_version,
             "domain_pack": domain_pack,
@@ -177,7 +181,7 @@ class IntelligenceMaxxxingClient:
             "statement": statement,
             "knowledge_class": knowledge_class,
             "observed_by": observed_by,
-            "context": {"scope": scope, "attributes": context_attributes or {}},
+            "context": context,
             "source_ids": source_ids or [],
             "metadata": metadata or {},
         }

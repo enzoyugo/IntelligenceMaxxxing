@@ -21,6 +21,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from intelligence_maxxxing.application.auth.service import AuthContext
 from intelligence_maxxxing.application.errors import (
+    EventPayloadInvalidError,
     IdempotencyConflictError,
     IdempotencyRaceDetected,
 )
@@ -29,6 +30,12 @@ from intelligence_maxxxing.application.ports import (
     IdempotencyRecord,
     ProjectedObservation,
     UnitOfWorkPort,
+)
+from intelligence_maxxxing.domain_packs.life.observation_provenance import (
+    NON_PRODUCTIVE_PURPOSES,
+    ObservationEnvironment,
+    parse_environment,
+    parse_purpose,
 )
 from intelligence_maxxxing.domain.audit.models import AuditRecord, EngineEvent
 from intelligence_maxxxing.domain.common.base import (
@@ -78,6 +85,20 @@ class SubmitObservationCommand(BaseModel):
     request_id: str = Field(min_length=1)
 
 
+def _reject_test_purpose_on_production_context(command: SubmitObservationCommand) -> None:
+    """Refuse SMOKE/CONTRACT/FIXTURE/DEMO tagged as PRODUCTION environment."""
+    purpose = parse_purpose(command.metadata.get("observation_purpose"))
+    environment = parse_environment(command.context.environment)
+    if purpose in NON_PRODUCTIVE_PURPOSES and environment in (
+        None,
+        ObservationEnvironment.PRODUCTION,
+    ):
+        raise EventPayloadInvalidError(
+            "test observation_purpose requires context.environment=TEST "
+            "(refusing production-ledger smoke contamination)"
+        )
+
+
 class SubmitObservationResult(BaseModel):
     """Outcome of an accepted (or safely replayed) observation submission."""
 
@@ -115,6 +136,7 @@ class SubmitObservationUseCase:
     def execute(
         self, command: SubmitObservationCommand, auth: AuthContext
     ) -> SubmitObservationResult:
+        _reject_test_purpose_on_production_context(command)
         payload_hash = _payload_hash(command)
 
         replayed = self._find_existing(command, auth, payload_hash)
