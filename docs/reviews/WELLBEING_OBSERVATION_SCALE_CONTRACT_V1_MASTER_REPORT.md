@@ -80,9 +80,8 @@ Legacy / ambiguous / invalid ratios penalize epistemic confidence; ambiguous →
 ### Warnings
 
 1. Pre-existing constitutional `test_application_layer_has_no_infrastructure_import` still fails (unchanged).
-2. BFF health may still advertise SDK 0.3.0 until process restart after `intelligence-maxxxing-client` 0.4.0 install (wheel bumped; attributes pass-through unchanged).
-3. Authoritative LifeOS capture scale is **`1_10`** (ValueSlider), not `0_100` as assumed in an earlier sprint narrative — documented in Phase 0 + LifeOS scale report.
-4. Full iPhone Daily Flow tap-through not re-run in this session; synthetic 0_100 + code-path emission verified.
+2. Authoritative LifeOS capture scale is **`1_10`** (ValueSlider), not `0_100` as assumed in an earlier sprint narrative — documented in Phase 0 + LifeOS scale report.
+3. Full iPhone Daily Flow tap-through not re-run in this session; synthetic 0_100 + code-path emission verified. SDK client installed/reported as **0.4.0** after BFF restart.
 
 ### Related docs
 
