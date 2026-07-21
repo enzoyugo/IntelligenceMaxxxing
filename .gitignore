@@ -32,3 +32,5 @@ Thumbs.db
 
 # Local design references
 docs/design-references/apple/*.sketch
+artifacts/
+
