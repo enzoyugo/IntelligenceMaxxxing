@@ -4,6 +4,15 @@
 
 **WELLBEING_TEST_OBSERVATION_ISOLATION_AND_LEDGER_INTEGRITY_V1_PASS_WITH_WARNINGS**
 
+## Baselines / HEAD (post-push)
+
+| Repo | Baseline | Final HEAD |
+|------|----------|------------|
+| Engine | `ecb9831` | `daf810c` |
+| LifeOS | `a3ebe14` | `cf40e97` |
+
+`main == origin/main` on both after push. Working trees still contain unrelated local WIP (Engine: Research Factory M3A untracked; LifeOS: prior hierarchy/docs edits) — isolation commits themselves are pushed.
+
 ## Executive summary
 
 Personal productive wellbeing scores now consume only observations selected by `wellbeing_input_selection_v1`. The SCALE_CONTRACT smoke observation is append-only invalidated. Future scale smokes use a temporary database. Formula weights unchanged; V1 remains ACTIVE; V2 remains SHADOW.
