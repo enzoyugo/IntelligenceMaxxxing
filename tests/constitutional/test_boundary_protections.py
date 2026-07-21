@@ -67,6 +67,8 @@ def test_llm_cannot_write_belief(app: FastAPI) -> None:
         "/api/v1/experiments/{experiment_id}/evaluate",
         # Human wellbeing feedback (ANALYZE/EXPLAIN calibration) — not belief writes.
         "/api/v1/wellbeing/feedback",
+        # TMX read-only trading assessment ingest — not belief writes; no TMX imports.
+        "/api/v1/trading/assessments",
     }
     assert set(write_routes) == allowed_writes, (
         f"unexpected public write paths; allowed={allowed_writes}, found={write_routes}"

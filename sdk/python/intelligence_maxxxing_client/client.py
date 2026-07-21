@@ -63,11 +63,13 @@ class IntelligenceMaxxxingClient:
         base_url: str = "http://127.0.0.1:8100",
         *,
         credential_secret: str | None = None,
+        trading_bridge_token: str | None = "tmx-im-local-bridge-v1",
         timeout_seconds: float = 10.0,
         http_client: httpx.Client | None = None,
     ) -> None:
         self._owns_client = http_client is None
         self._credential_secret = credential_secret
+        self._trading_bridge_token = trading_bridge_token
         self._http = http_client or httpx.Client(base_url=base_url, timeout=timeout_seconds)
 
     def close(self) -> None:
@@ -389,3 +391,51 @@ class IntelligenceMaxxxingClient:
             body["note"] = note
         envelope = self._request("POST", "/api/v1/wellbeing/feedback", json_body=body)
         return envelope["data"] or {}
+
+    def _trading_headers(self, idempotency_key: str | None = None) -> dict[str, str]:
+        headers: dict[str, str] = {}
+        if self._trading_bridge_token:
+            headers["X-Trading-Bridge-Token"] = self._trading_bridge_token
+        if idempotency_key:
+            headers["Idempotency-Key"] = idempotency_key
+        return headers
+
+    def trading_health(self) -> dict[str, Any]:
+        """Trading assessment health (bridge token; no Engine Core import of TMX)."""
+        envelope = self._request(
+            "GET",
+            "/api/v1/trading/health",
+            headers=self._trading_headers(),
+        )
+        return envelope.get("data") or {}
+
+    def trading_active_policy(self) -> dict[str, Any]:
+        envelope = self._request(
+            "GET",
+            "/api/v1/trading/policies/active",
+            headers=self._trading_headers(),
+        )
+        return envelope.get("data") or {}
+
+    def assess_trading_observation(
+        self,
+        observation: dict[str, Any],
+        *,
+        idempotency_key: str | None = None,
+    ) -> dict[str, Any]:
+        key = idempotency_key or str(observation.get("idempotency_key") or new_idempotency_key())
+        envelope = self._request(
+            "POST",
+            "/api/v1/trading/assessments",
+            json_body=observation,
+            headers=self._trading_headers(key),
+        )
+        return envelope.get("data") or {}
+
+    def get_trading_assessment(self, assessment_id: str) -> dict[str, Any]:
+        envelope = self._request(
+            "GET",
+            f"/api/v1/trading/assessments/{assessment_id}",
+            headers=self._trading_headers(),
+        )
+        return envelope.get("data") or {}

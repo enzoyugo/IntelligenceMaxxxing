@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "tmx.im.observation.v1",
+  "title": "TMX to IM Trading Observation V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "experiment_id",
+    "observation_id",
+    "idempotency_key",
+    "source_system",
+    "source_commit",
+    "created_at_utc",
+    "decision_cutoff_utc",
+    "available_at_utc",
+    "economic_setup",
+    "raw_strategy",
+    "tmx_native",
+    "feature_snapshot_id",
+    "market_context",
+    "data_quality",
+    "risk_context",
+    "portfolio_context",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": { "const": "tmx.im.observation.v1" },
+    "experiment_id": { "type": "string", "minLength": 1 },
+    "observation_id": { "type": "string", "minLength": 1 },
+    "idempotency_key": { "type": "string", "minLength": 1 },
+    "source_system": { "const": "TradingMaxxxing" },
+    "source_commit": { "type": "string" },
+    "created_at_utc": { "type": "string" },
+    "decision_cutoff_utc": { "type": "string" },
+    "available_at_utc": { "type": "string" },
+    "economic_setup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "economic_setup_id",
+        "source_event_id",
+        "strategy_id",
+        "strategy_family",
+        "strategy_implementation_version",
+        "strategy_fidelity_class",
+        "symbol",
+        "timeframe",
+        "direction",
+        "signal_time_utc",
+        "order_type",
+        "entry",
+        "stop",
+        "target",
+        "setup_geometry_hash",
+        "config_hash",
+        "nominal_risk_R"
+      ],
+      "properties": {
+        "economic_setup_id": { "type": "string" },
+        "source_event_id": { "type": "string" },
+        "strategy_id": { "type": "string" },
+        "strategy_family": { "type": "string" },
+        "strategy_implementation_version": { "type": "string" },
+        "strategy_fidelity_class": {
+          "type": "string",
+          "enum": ["CERTIFIED", "PARTIAL", "PROXY", "DEPRECATED"]
+        },
+        "certificate_id": { "type": ["string", "null"] },
+        "cohort_id": { "type": ["string", "null"] },
+        "symbol": { "type": "string" },
+        "timeframe": { "type": "string" },
+        "direction": { "type": "string", "enum": ["LONG", "SHORT"] },
+        "signal_time_utc": { "type": "string" },
+        "order_type": { "type": "string" },
+        "entry": { "type": "number" },
+        "stop": { "type": "number" },
+        "target": { "type": ["number", "null"] },
+        "setup_geometry_hash": { "type": "string" },
+        "config_hash": { "type": "string" },
+        "nominal_risk_R": { "const": 1.0 }
+      }
+    },
+    "raw_strategy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decision", "nominal_risk_R", "reason_codes", "decision_created_at_utc"],
+      "properties": {
+        "decision": { "type": "string", "enum": ["TAKE", "NO_SIGNAL", "INVALID"] },
+        "raw_strategy_decision_id": { "type": "string" },
+        "source_trace_id": { "type": ["string", "null"] },
+        "reason_codes": { "type": "array", "items": { "type": "string" } },
+        "nominal_risk_R": { "const": 1.0 },
+        "decision_created_at_utc": { "type": "string" },
+        "strategy_version": { "type": ["string", "null"] },
+        "fidelity_class": { "type": ["string", "null"] },
+        "certificate_id": { "type": ["string", "null"] }
+      }
+    },
+    "tmx_native": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decision", "nominal_risk_R", "reason_codes", "decision_created_at_utc"],
+      "properties": {
+        "decision": {
+          "type": "string",
+          "enum": ["TAKE", "SKIP", "UNKNOWN", "DEFER_DATA_QUALITY"]
+        },
+        "tmx_native_decision_id": { "type": "string" },
+        "decision_layer_version": { "type": ["string", "null"] },
+        "risk_engine_version": { "type": ["string", "null"] },
+        "professional_decision": { "type": ["string", "null"] },
+        "risk_decision": { "type": ["string", "null"] },
+        "reason_codes": { "type": "array", "items": { "type": "string" } },
+        "confidence": { "type": ["number", "null"] },
+        "nominal_risk_R": { "const": 1.0 },
+        "decision_created_at_utc": { "type": "string" }
+      }
+    },
+    "feature_snapshot_id": { "type": "string" },
+    "features": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["value", "observed_at_utc", "available_at_utc", "source", "quality", "version"],
+        "properties": {
+          "value": {},
+          "observed_at_utc": { "type": "string" },
+          "available_at_utc": { "type": "string" },
+          "source": { "type": "string" },
+          "quality": { "type": "string" },
+          "version": { "type": "string" }
+        }
+      }
+    },
+    "market_context": { "type": "object" },
+    "data_quality": {
+      "type": "object",
+      "properties": {
+        "identity_quality": { "type": ["string", "null"] },
+        "quote_quality": { "type": ["string", "null"] },
+        "cost_quality": { "type": ["string", "null"] },
+        "quote_snapshot_id": { "type": ["string", "null"] },
+        "cost_snapshot_id": { "type": ["string", "null"] }
+      }
+    },
+    "risk_context": { "type": "object" },
+    "portfolio_context": { "type": "object" },
+    "provenance": { "type": "object" }
+  },
+  "not": {
+    "anyOf": [
+      { "required": ["outcome"] },
+      { "required": ["exit_reason"] },
+      { "required": ["realized_R"] },
+      { "required": ["gross_R"] },
+      { "required": ["trusted_net_R"] },
+      { "required": ["mfe"] },
+      { "required": ["mae"] }
+    ]
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "im.tmx.assessment.v1",
+  "title": "IM to TMX Trading Assessment V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "assessment_id",
+    "request_id",
+    "experiment_id",
+    "economic_setup_id",
+    "policy_id",
+    "policy_version",
+    "policy_frozen_at_utc",
+    "ruleset_hash",
+    "decision",
+    "data_trust",
+    "evidence_strength",
+    "confidence_components",
+    "overall_confidence",
+    "eligible_for_economic_evaluation",
+    "reason_codes",
+    "evidence_refs",
+    "created_at_utc",
+    "input_hash",
+    "output_hash"
+  ],
+  "properties": {
+    "schema_version": { "const": "im.tmx.assessment.v1" },
+    "assessment_id": { "type": "string" },
+    "request_id": { "type": "string" },
+    "experiment_id": { "type": "string" },
+    "economic_setup_id": { "type": "string" },
+    "observation_id": { "type": ["string", "null"] },
+    "idempotency_key": { "type": ["string", "null"] },
+    "policy_id": { "const": "IM_TRADING_DECISION_POLICY" },
+    "policy_version": { "type": "string" },
+    "policy_frozen_at_utc": { "type": "string" },
+    "ruleset_hash": { "type": "string" },
+    "model_version": { "type": ["string", "null"] },
+    "prompt_hash": { "type": ["string", "null"] },
+    "decision": {
+      "type": "string",
+      "enum": ["TAKE", "SKIP", "UNKNOWN", "DEFER_DATA_QUALITY"]
+    },
+    "rank_score": { "type": ["number", "null"] },
+    "data_trust": { "type": "number", "minimum": 0, "maximum": 1 },
+    "evidence_strength": { "type": "number", "minimum": 0, "maximum": 1 },
+    "confidence_components": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data_trust_confidence",
+        "evidence_confidence",
+        "context_confidence",
+        "statistical_confidence",
+        "calibration_confidence",
+        "model_confidence",
+        "method",
+        "limitations"
+      ],
+      "properties": {
+        "data_trust_confidence": { "type": ["number", "null"] },
+        "evidence_confidence": { "type": ["number", "null"] },
+        "context_confidence": { "type": ["number", "null"] },
+        "statistical_confidence": { "type": ["number", "null"] },
+        "calibration_confidence": { "type": ["number", "null"] },
+        "model_confidence": { "type": ["number", "null"] },
+        "method": { "type": "string" },
+        "limitations": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "overall_confidence": { "type": ["number", "null"] },
+    "eligible_for_economic_evaluation": { "type": "boolean" },
+    "reason_codes": { "type": "array", "items": { "type": "string" } },
+    "evidence_refs": { "type": "array", "items": { "type": "string" } },
+    "created_at_utc": { "type": "string" },
+    "input_hash": { "type": "string" },
+    "output_hash": { "type": "string" }
+  }
+}
