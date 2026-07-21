@@ -509,3 +509,102 @@ class IntelligenceMaxxxingClient:
             headers=self._trading_headers(),
         )
         return envelope.get("data") or {}
+
+    def research_factory_health(self) -> dict[str, Any]:
+        envelope = self._request(
+            "GET",
+            "/api/v1/research/health",
+            headers=self._trading_headers(),
+        )
+        return envelope.get("data") or {}
+
+    def list_research_hypotheses(self, *, limit: int = 100) -> dict[str, Any]:
+        envelope = self._request(
+            "GET",
+            f"/api/v1/research/hypotheses?limit={limit}",
+            headers=self._trading_headers(),
+        )
+        return envelope.get("data") or {}
+
+    def create_research_hypothesis(self, body: dict[str, Any]) -> dict[str, Any]:
+        envelope = self._request(
+            "POST",
+            "/api/v1/research/hypotheses",
+            json_body=body,
+            headers=self._trading_headers(),
+        )
+        return envelope.get("data") or {}
+
+    def list_research_evidence(self, *, limit: int = 200) -> dict[str, Any]:
+        envelope = self._request(
+            "GET",
+            f"/api/v1/research/evidence?limit={limit}",
+            headers=self._trading_headers(),
+        )
+        return envelope.get("data") or {}
+
+    def create_research_evidence(self, body: dict[str, Any]) -> dict[str, Any]:
+        envelope = self._request(
+            "POST",
+            "/api/v1/research/evidence",
+            json_body=body,
+            headers=self._trading_headers(),
+        )
+        return envelope.get("data") or {}
+
+    def list_research_experiments(self, *, limit: int = 100) -> dict[str, Any]:
+        envelope = self._request(
+            "GET",
+            f"/api/v1/research/experiments?limit={limit}",
+            headers=self._trading_headers(),
+        )
+        return envelope.get("data") or {}
+
+    def create_research_experiment(self, body: dict[str, Any]) -> dict[str, Any]:
+        envelope = self._request(
+            "POST",
+            "/api/v1/research/experiments",
+            json_body=body,
+            headers=self._trading_headers(),
+        )
+        return envelope.get("data") or {}
+
+    def manually_approve_research_experiment(
+        self,
+        experiment_id: str,
+        *,
+        actor: str,
+        confirmation: str = "I_CONFIRM_MANUAL_APPROVAL",
+    ) -> dict[str, Any]:
+        envelope = self._request(
+            "POST",
+            f"/api/v1/research/experiments/{experiment_id}/manual-approve",
+            json_body={"actor": actor, "confirmation": confirmation},
+            headers=self._trading_headers(),
+        )
+        return envelope.get("data") or {}
+
+    def research_learning_memory(self, *, limit: int = 100) -> dict[str, Any]:
+        envelope = self._request(
+            "GET",
+            f"/api/v1/research/learning-memory?limit={limit}",
+            headers=self._trading_headers(),
+        )
+        return envelope.get("data") or {}
+
+    def research_priorities(self) -> dict[str, Any]:
+        envelope = self._request(
+            "GET",
+            "/api/v1/research/priorities",
+            headers=self._trading_headers(),
+        )
+        return envelope.get("data") or {}
+
+    def seed_research_factory(self) -> dict[str, Any]:
+        envelope = self._request(
+            "POST",
+            "/api/v1/research/seed",
+            json_body={},
+            headers=self._trading_headers(),
+        )
+        return envelope.get("data") or {}
