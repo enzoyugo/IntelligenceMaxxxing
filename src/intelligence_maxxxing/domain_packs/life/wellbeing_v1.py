@@ -15,7 +15,7 @@ from statistics import mean
 from typing import Any
 
 FORMULA_ID = "wellbeing_v1"
-FORMULA_VERSION = "1.0"
+FORMULA_VERSION = "1.1"
 LIFE_EVENT_TYPE = "life.daily_check_in.completed.v1"
 
 COLD_START_MIN_DAYS = 3
@@ -29,6 +29,7 @@ class EarlyWarning(StrEnum):
     LOW_CONFIDENCE = "LOW_CONFIDENCE"
     COMPOUND_RISK = "COMPOUND_RISK"
     INSUFFICIENT_DATA = "INSUFFICIENT_DATA"
+    EXTREME_SCORE_LOW_EVIDENCE = "EXTREME_SCORE_LOW_EVIDENCE"
 
 
 class DataSufficiency(StrEnum):
@@ -79,6 +80,37 @@ def _clamp(value: float, lo: float = 0.0, hi: float = 100.0) -> float:
 
 def _scale_1_10_to_100(value: float) -> float:
     return _clamp((value - 1.0) / 9.0 * 100.0)
+
+
+def _to_score_100(raw: float) -> tuple[float, str]:
+    """Normalize Likert/score inputs exactly once into 0–100.
+
+    LifeOS Daily Flow historically stores happiness/stress/energy/productivity
+    on ~0–100. Unit tests and older fixtures use 1–10 Likert. Values ≤10 are
+    treated as Likert; values >10 are treated as already 0–100.
+    """
+    if raw <= 10.0:
+        return _scale_1_10_to_100(raw), "1_10"
+    return _clamp(raw), "0_100"
+
+
+def _sample_maturity_cap(sample: int) -> float:
+    """Hard ceiling on epistemic confidence from sample size alone."""
+    if sample <= 2:
+        return 25.0
+    if sample <= 6:
+        return 45.0
+    if sample <= 13:
+        return 60.0
+    if sample <= 29:
+        return 75.0
+    return 100.0
+
+
+def _is_extreme(score: float | None) -> bool:
+    if score is None:
+        return False
+    return score <= 5.0 or score >= 95.0
 
 
 def extract_checkin_days(rows: list[Any]) -> list[CheckInDay]:
@@ -239,39 +271,62 @@ def compute_wellbeing_v1(
     gym_rate = _avg(gym_flags)
     alcohol_rate = _avg(alcohol_flags) or 0.0
 
-    # Happiness (0-100): independent composite — NOT (100 - stress).
+    scales_detected: list[str] = []
+
+    def _norm(raw: float | None) -> float | None:
+        if raw is None:
+            return None
+        score, scale = _to_score_100(raw)
+        scales_detected.append(scale)
+        return score
+
+    happ_n = _norm(avg_happ)
+    stress_n = _norm(avg_stress)
+    energy_n = _norm(avg_energy)
+    prod_n = _norm(avg_prod)
+    input_scale = (
+        "mixed"
+        if len(set(scales_detected)) > 1
+        else (scales_detected[0] if scales_detected else "unknown")
+    )
+
+    # Happiness (0-100): independent composite — NOT (100 - stress). Clamp once at end.
     happiness: float | None = None
-    if avg_happ is not None:
-        base = _scale_1_10_to_100(avg_happ)
-        energy_boost = ((_scale_1_10_to_100(avg_energy) - 50.0) * 0.15) if avg_energy else 0.0
+    happ_pre_clamp: float | None = None
+    if happ_n is not None:
+        energy_boost = ((energy_n - 50.0) * 0.15) if energy_n is not None else 0.0
         sleep_boost = 0.0
         if avg_sleep is not None:
-            # Peak around 7.5h; mild penalty outside 6–9.
             sleep_boost = _clamp(100.0 - abs(avg_sleep - 7.5) * 12.0, 0.0, 100.0) * 0.10 - 5.0
-        happiness = round(_clamp(base + energy_boost + sleep_boost), 2)
+        happ_pre_clamp = happ_n + energy_boost + sleep_boost
+        happiness = round(_clamp(happ_pre_clamp), 2)
 
     # Stress (0-100): higher is worse; alcohol/low sleep amplify.
     stress: float | None = None
-    if avg_stress is not None:
-        base_s = _scale_1_10_to_100(avg_stress)
+    stress_pre_clamp: float | None = None
+    if stress_n is not None:
         amp = alcohol_rate * 8.0
         if avg_sleep is not None and avg_sleep < 6.0:
             amp += (6.0 - avg_sleep) * 4.0
-        stress = round(_clamp(base_s + amp), 2)
+        stress_pre_clamp = stress_n + amp
+        stress = round(_clamp(stress_pre_clamp), 2)
 
-    # Confidence (0-100): separate — productivity + energy stability + gym.
-    confidence: float | None = None
-    if avg_prod is not None or avg_energy is not None:
-        prod_c = _scale_1_10_to_100(avg_prod) if avg_prod is not None else 50.0
-        energy_c = _scale_1_10_to_100(avg_energy) if avg_energy is not None else 50.0
+    # Agency score (0-100): productivity/energy/gym — kept in features, not UI confidence.
+    agency_score: float | None = None
+    if prod_n is not None or energy_n is not None:
+        prod_c = prod_n if prod_n is not None else 50.0
+        energy_c = energy_n if energy_n is not None else 50.0
         gym_c = (gym_rate * 100.0) if gym_rate is not None else 40.0
-        # Energy variance penalty (stability).
         stability = 100.0
-        if len(energy_raw) >= 2:
-            e_mean = mean(energy_raw)
-            variance = mean([(e - e_mean) ** 2 for e in energy_raw])
-            stability = _clamp(100.0 - variance * 8.0)
-        confidence = round(_clamp(0.45 * prod_c + 0.30 * energy_c + 0.15 * gym_c + 0.10 * stability), 2)
+        energy_normed = [_to_score_100(e)[0] for e in energy_raw]
+        if len(energy_normed) >= 2:
+            e_mean = mean(energy_normed)
+            variance = mean([(e - e_mean) ** 2 for e in energy_normed])
+            # Coefficient tuned for 0–100 units (was *8 for 1–10 Likert).
+            stability = _clamp(100.0 - variance * 0.08)
+        agency_score = round(
+            _clamp(0.45 * prod_c + 0.30 * energy_c + 0.15 * gym_c + 0.10 * stability), 2
+        )
 
     if sample < COLD_START_MIN_DAYS:
         sufficiency = DataSufficiency.COLD_START
@@ -281,6 +336,38 @@ def compute_wellbeing_v1(
         sufficiency = DataSufficiency.RICH
     else:
         sufficiency = DataSufficiency.ADEQUATE
+
+    # Epistemic confidence (what clients display as Confidence): maturity + coverage.
+    domain_flags = [
+        avg_happ is not None,
+        avg_stress is not None,
+        avg_energy is not None,
+        avg_prod is not None,
+        avg_sleep is not None,
+        gym_rate is not None,
+    ]
+    domain_coverage = sum(1 for f in domain_flags if f) / float(len(domain_flags))
+    day_coverage = sample / float(window_days)
+    sufficiency_factor = {
+        DataSufficiency.COLD_START: 0.25,
+        DataSufficiency.PARTIAL: 0.45,
+        DataSufficiency.ADEQUATE: 0.75,
+        DataSufficiency.RICH: 1.0,
+    }[sufficiency]
+    # No human feedback calibration in V1.1 → uncalibrated dampener.
+    calibration_status = "uncalibrated"
+    calibration_factor = 0.85
+    epistemic_raw = 100.0 * (
+        0.45 * day_coverage + 0.35 * domain_coverage + 0.20 * sufficiency_factor
+    )
+    epistemic_raw *= calibration_factor
+    maturity_cap = _sample_maturity_cap(sample)
+    confidence = round(min(epistemic_raw, maturity_cap), 2)
+
+    thin_evidence = sufficiency in {DataSufficiency.COLD_START, DataSufficiency.PARTIAL} or sample < 7
+    extreme_low_evidence = thin_evidence and (_is_extreme(happiness) or _is_extreme(stress))
+    if extreme_low_evidence:
+        confidence = round(min(confidence, maturity_cap) * 0.7, 2)
 
     warning = EarlyWarning.NONE
     if sufficiency == DataSufficiency.COLD_START:
@@ -293,8 +380,17 @@ def compute_wellbeing_v1(
             flags.append(EarlyWarning.LOW_HAPPINESS)
         if confidence is not None and confidence <= 35:
             flags.append(EarlyWarning.LOW_CONFIDENCE)
+        if extreme_low_evidence:
+            flags.append(EarlyWarning.EXTREME_SCORE_LOW_EVIDENCE)
         if len(flags) >= 2:
-            warning = EarlyWarning.COMPOUND_RISK
+            # Prefer compound only when classic risk flags collide; keep extreme visible.
+            classic = [f for f in flags if f != EarlyWarning.EXTREME_SCORE_LOW_EVIDENCE]
+            if len(classic) >= 2:
+                warning = EarlyWarning.COMPOUND_RISK
+            elif EarlyWarning.EXTREME_SCORE_LOW_EVIDENCE in flags and classic:
+                warning = classic[0]
+            else:
+                warning = flags[0]
         elif flags:
             warning = flags[0]
 
@@ -381,6 +477,31 @@ def compute_wellbeing_v1(
         "gym_rate": gym_rate,
         "alcohol_rate": alcohol_rate,
         "happiness_neq_100_minus_stress": True,
+        "input_scale_detected": input_scale,
+        "avg_happiness_normalized": happ_n,
+        "avg_stress_normalized": stress_n,
+        "happiness_pre_clamp": happ_pre_clamp,
+        "stress_pre_clamp": stress_pre_clamp,
+        "agency_score": agency_score,
+        "epistemic_raw": round(epistemic_raw, 2),
+        "sample_maturity_cap": maturity_cap,
+        "domain_coverage": round(domain_coverage, 4),
+        "day_coverage": round(day_coverage, 4),
+        "calibration_status": calibration_status,
+        "extreme_score_low_evidence": extreme_low_evidence,
+        "missing_domains": [
+            name
+            for name, present in (
+                ("happiness", avg_happ is not None),
+                ("stress", avg_stress is not None),
+                ("energy", avg_energy is not None),
+                ("productivity", avg_prod is not None),
+                ("sleep", avg_sleep is not None),
+                ("gym", gym_rate is not None),
+                ("schedule", False),  # V1 has no schedule domain
+            )
+            if not present
+        ],
     }
 
     baselines = {
@@ -413,10 +534,17 @@ def compute_wellbeing_v1(
             ),
             "stress_definition": "Reported stress scaled to 0–100, amplified by alcohol rate and short sleep.",
             "confidence_definition": (
-                "Separate score from productivity, energy level/stability, and gym adherence."
+                "Epistemic estimation confidence from day coverage, domain coverage, "
+                "data sufficiency, calibration status, and sample-maturity caps. "
+                "Agency (productivity/energy/gym) is stored separately as features.agency_score."
+            ),
+            "input_scale_policy": (
+                "Raw values ≤10 treated as 1–10 Likert; values >10 treated as 0–100. "
+                "Normalized once before composition; clamp only at the end."
             ),
             "autonomy": "ANALYZE/EXPLAIN only; suggested_actions are not RECOMMEND capability.",
             "cold_start_policy": f"Scores marked COLD_START below {COLD_START_MIN_DAYS} days.",
+            "calibration_status": calibration_status,
         },
         as_of_global_position=max_pos,
         baselines=baselines,

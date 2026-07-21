@@ -53,15 +53,19 @@ def test_happiness_not_100_minus_stress() -> None:
     assert result.features["happiness_neq_100_minus_stress"] is True
 
 
-def test_confidence_independent_of_stress() -> None:
+def test_agency_independent_of_stress() -> None:
+    """Agency (features) tracks productivity/energy/gym; epistemic confidence is separate."""
     high_stress = [_day(i, stress=9.0, productivity=9.0, energy=8.0, gym=True) for i in range(10)]
     low_stress = [_day(i, stress=2.0, productivity=3.0, energy=3.0, gym=False) for i in range(10)]
     high = compute_wellbeing_v1(high_stress, window_days=10, as_of=date(2026, 7, 19))
     low = compute_wellbeing_v1(low_stress, window_days=10, as_of=date(2026, 7, 19))
-    assert high.confidence is not None and low.confidence is not None
-    assert high.confidence > low.confidence
+    assert high.features["agency_score"] is not None and low.features["agency_score"] is not None
+    assert high.features["agency_score"] > low.features["agency_score"]
     assert high.stress is not None and low.stress is not None
     assert high.stress > low.stress
+    # Same sample size → epistemic confidence in the same maturity band.
+    assert high.confidence is not None and low.confidence is not None
+    assert high.confidence <= 60.0  # 7–13 day cap
 
 
 def test_suggested_actions_are_analyze_explain_not_recommend() -> None:
