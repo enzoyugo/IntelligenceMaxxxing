@@ -439,3 +439,69 @@ class IntelligenceMaxxxingClient:
             headers=self._trading_headers(),
         )
         return envelope.get("data") or {}
+
+    def trading_agents_health(self) -> dict[str, Any]:
+        envelope = self._request(
+            "GET",
+            "/api/v1/trading/agents/health",
+            headers=self._trading_headers(),
+        )
+        return envelope.get("data") or {}
+
+    def trading_active_agent_bundle(self) -> dict[str, Any]:
+        envelope = self._request(
+            "GET",
+            "/api/v1/trading/agent-bundles/active",
+            headers=self._trading_headers(),
+        )
+        return envelope.get("data") or {}
+
+    def create_trading_context_assessment(self, observation: dict[str, Any]) -> dict[str, Any]:
+        envelope = self._request(
+            "POST",
+            "/api/v1/trading/context-assessments",
+            json_body={"observation": observation},
+            headers=self._trading_headers(),
+        )
+        return envelope.get("data") or {}
+
+    def create_trading_anomaly_findings(self, observation: dict[str, Any]) -> dict[str, Any]:
+        envelope = self._request(
+            "POST",
+            "/api/v1/trading/anomaly-findings",
+            json_body={"observation": observation},
+            headers=self._trading_headers(),
+        )
+        return envelope.get("data") or {}
+
+    def create_trading_critic_review(self, body: dict[str, Any]) -> dict[str, Any]:
+        envelope = self._request(
+            "POST",
+            "/api/v1/trading/critic-reviews",
+            json_body=body,
+            headers=self._trading_headers(),
+        )
+        return envelope.get("data") or {}
+
+    def create_trading_shadow_adjudication(self, body: dict[str, Any]) -> dict[str, Any]:
+        envelope = self._request(
+            "POST",
+            "/api/v1/trading/shadow-adjudications",
+            json_body=body,
+            headers=self._trading_headers(),
+        )
+        return envelope.get("data") or {}
+
+    def run_trading_agent_bundle(
+        self,
+        *,
+        observation: dict[str, Any],
+        assessment: dict[str, Any],
+    ) -> dict[str, Any]:
+        envelope = self._request(
+            "POST",
+            "/api/v1/trading/agent-bundle/runs",
+            json_body={"observation": observation, "assessment": assessment},
+            headers=self._trading_headers(),
+        )
+        return envelope.get("data") or {}

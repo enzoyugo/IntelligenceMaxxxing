@@ -69,6 +69,12 @@ def test_llm_cannot_write_belief(app: FastAPI) -> None:
         "/api/v1/wellbeing/feedback",
         # TMX read-only trading assessment ingest — not belief writes; no TMX imports.
         "/api/v1/trading/assessments",
+        # M2 agent artifacts — parallel non-authoritative research; no belief writes.
+        "/api/v1/trading/context-assessments",
+        "/api/v1/trading/anomaly-findings",
+        "/api/v1/trading/critic-reviews",
+        "/api/v1/trading/shadow-adjudications",
+        "/api/v1/trading/agent-bundle/runs",
     }
     assert set(write_routes) == allowed_writes, (
         f"unexpected public write paths; allowed={allowed_writes}, found={write_routes}"
