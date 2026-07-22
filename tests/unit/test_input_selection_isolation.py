@@ -67,6 +67,20 @@ def test_policy_version_constant() -> None:
     assert INPUT_SELECTION_POLICY_VERSION == "wellbeing_input_selection_v1"
 
 
+def test_local_e2e_activation_cohort_excluded() -> None:
+    row = _row(
+        oid="obs_local_e2e_act",
+        pos=1,
+        source="lifemaxxxing://daily-check-ins/local-E2E_WELLBEING_ACTIVATION_2026-07-16",
+        purpose=None,
+        environment=None,
+        scales="0_100",
+        happ=62,
+        stress=40,
+    )
+    assert classify_for_personal_production(row) is SelectionDecision.EXCLUDED_TEST
+
+
 def test_known_smoke_observation_excluded() -> None:
     row = _row(
         oid="obs_ab746ef9d6c64732990a6e7fc4aaea15",

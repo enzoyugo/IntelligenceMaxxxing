@@ -28,6 +28,8 @@ INPUT_SELECTION_POLICY_VERSION = "wellbeing_input_selection_v1"
 KNOWN_TEST_SOURCE_PREFIXES: tuple[str, ...] = (
     "lifemaxxxing://daily-check-ins/smoke-E2E_SCALE_CONTRACT_V1",
     "lifemaxxxing://daily-check-ins/smoke-E2E_WELLBEING_ACTIVATION",
+    # Synthetic activation cohort (0–100 magnitudes without scale tags).
+    "lifemaxxxing://daily-check-ins/local-E2E_WELLBEING_ACTIVATION",
 )
 
 KNOWN_TEST_OBSERVATION_IDS: frozenset[str] = frozenset(

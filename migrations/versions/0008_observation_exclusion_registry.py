@@ -47,10 +47,10 @@ def upgrade() -> None:
               'obs_ab746ef9d6c64732990a6e7fc4aaea15',
               'TEST_OBSERVATION_IN_PRODUCTION_LEDGER',
               'SCALE_CONTRACT_V1 smoke observation retained in personal ledger; excluded from personal wellbeing input selection.',
-              TIMESTAMPTZ '2026-07-21 00:00:00+00',
+              '2026-07-21T00:00:00+00:00',
               'wellbeing_test_isolation_v1',
               'WELLBEING_EXISTING_SMOKE_CONTAMINATION_AUDIT_V1',
-              TIMESTAMPTZ '2026-07-21 00:00:00+00'
+              '2026-07-21T00:00:00+00:00'
             )
             ON CONFLICT (target_observation_id) DO NOTHING
             """

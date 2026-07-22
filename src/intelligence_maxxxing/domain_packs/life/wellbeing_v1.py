@@ -117,8 +117,9 @@ def extract_checkin_days(
 ) -> list[CheckInDay]:
     """Extract daily check-ins; score fields stored as canonical 0–100.
 
-    Applies wellbeing_input_selection_v1 before first-write-wins so tests cannot
-    capture a calendar day ahead of personal observations.
+    Applies wellbeing_input_selection_v1 before latest-write-wins so tests cannot
+    capture a calendar day ahead of personal observations, while same-day edits
+    supersede earlier productive revisions for scoring.
     """
     by_day: dict[date, CheckInDay] = {}
     scale_report = report or ScaleExtractionReport()
@@ -170,9 +171,9 @@ def extract_checkin_days(
                 return raw.lower() in {"1", "true", "yes"}
             return None
 
-        # First-write wins (lowest global_position) for a calendar day.
-        if day in by_day:
-            continue
+        # Latest-write wins (highest global_position) for a calendar day.
+        # Earlier revisions remain in the ledger for audit; only the newest
+        # selected observation feeds V1 features for that day.
         scores = resolve_score_fields(
             attrs,
             event_type=LIFE_EVENT_TYPE,

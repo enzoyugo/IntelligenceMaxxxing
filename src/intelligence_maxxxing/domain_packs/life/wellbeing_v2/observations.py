@@ -82,10 +82,12 @@ def extract_day_records(
     report: ScaleExtractionReport | None = None,
     selection_report: SelectionReport | None = None,
 ) -> list[DayRecord]:
-    """First-write (lowest global_position) daily check-ins; merge workout flags.
+    """Latest-write (highest global_position) daily check-ins; merge workout flags.
 
     Happiness/stress/energy/productivity are stored as canonical 0–100.
-    Applies the same wellbeing_input_selection_v1 filter as V1.
+    Applies the same wellbeing_input_selection_v1 filter as V1. Earlier
+    same-day revisions remain in the ledger; only the newest selected
+    observation feeds V2 features for that calendar day.
     """
     checkins: dict[date, DayRecord] = {}
     workouts: set[date] = set()
@@ -113,8 +115,6 @@ def extract_day_records(
         if getattr(row, "subject", None) != "daily_check_in":
             continue
         if event != LIFE_EVENT_TYPE:
-            continue
-        if day in checkins:
             continue
         attrs = _attrs(row)
         source_ids = list(getattr(row, "source_ids", None) or [])
