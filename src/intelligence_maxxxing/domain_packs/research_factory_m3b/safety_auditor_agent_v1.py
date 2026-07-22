@@ -557,9 +557,11 @@ class SafetyAuditorAgentV1:
             1 for c in checks if c.get("critical") and c.get("status") == "UNKNOWN"
         )
 
-        if critical_failures or n_fail > 0 or n_critical_unknown > 0:
+        # UNKNOWN must never become PASS. Missing probes are PARTIAL, not BLOCKED.
+        # BLOCKED only for explicit FAIL (or critical FAIL codes).
+        if critical_failures or n_fail > 0:
             overall = "SAFETY_BLOCKED"
-        elif n_unknown > 0:
+        elif n_unknown > 0 or n_critical_unknown > 0:
             overall = "SAFETY_PARTIAL"
         elif n_warn > 0:
             overall = "SAFETY_PASS_WITH_WARNINGS"

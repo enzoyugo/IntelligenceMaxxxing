@@ -39,6 +39,19 @@ SAFETY_CHECK_STATUSES = frozenset({"PASS", "FAIL", "WARN", "UNKNOWN"})
 
 REPORT_TYPES = frozenset(
     {
+        # Spec §6 report types
+        "DAILY_PROSPECTIVE_REPORT",
+        "FIRST_REAL_SETUP_REPORT",
+        "PIPELINE_HEALTH_REPORT",
+        "BRIDGE_REPORT",
+        "POLICY_REPORT",
+        "AGENT_REPORT",
+        "EVIDENCE_REPORT",
+        "SAFETY_REPORT",
+        "EXPERIMENT_READINESS_REPORT",
+        "DATA_QUALITY_REPORT",
+        "RESEARCH_FACTORY_REPORT",
+        # Compatibility aliases used by early M3B tests/docs
         "EVIDENCE_BUNDLE_SUMMARY",
         "SAFETY_AUDIT_SUMMARY",
         "ECONOMIC_INCREMENTAL_VALUE",
