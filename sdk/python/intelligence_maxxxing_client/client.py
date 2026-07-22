@@ -608,3 +608,90 @@ class IntelligenceMaxxxingClient:
             headers=self._trading_headers(),
         )
         return envelope.get("data") or {}
+
+    def research_m3b_health(self) -> dict[str, Any]:
+        envelope = self._request(
+            "GET",
+            "/api/v1/research/m3b/health",
+            headers=self._trading_headers(),
+        )
+        return envelope.get("data") or {}
+
+    def list_evidence_bundles(self, *, limit: int = 100) -> dict[str, Any]:
+        envelope = self._request(
+            "GET",
+            f"/api/v1/research/evidence-bundles?limit={limit}",
+            headers=self._trading_headers(),
+        )
+        return envelope.get("data") or {}
+
+    def get_evidence_bundle(self, bundle_id: str) -> dict[str, Any]:
+        envelope = self._request(
+            "GET",
+            f"/api/v1/research/evidence-bundles/{bundle_id}",
+            headers=self._trading_headers(),
+        )
+        return envelope.get("data") or {}
+
+    def create_evidence_bundle(self, subject: dict[str, Any]) -> dict[str, Any]:
+        envelope = self._request(
+            "POST",
+            "/api/v1/research/evidence-bundles",
+            json_body={"subject": subject},
+            headers=self._trading_headers(),
+        )
+        return envelope.get("data") or {}
+
+    def list_safety_audits(self, *, limit: int = 100) -> dict[str, Any]:
+        envelope = self._request(
+            "GET",
+            f"/api/v1/research/safety-audits?limit={limit}",
+            headers=self._trading_headers(),
+        )
+        return envelope.get("data") or {}
+
+    def get_safety_audit(self, audit_id: str) -> dict[str, Any]:
+        envelope = self._request(
+            "GET",
+            f"/api/v1/research/safety-audits/{audit_id}",
+            headers=self._trading_headers(),
+        )
+        return envelope.get("data") or {}
+
+    def create_safety_audit(self, scope_payload: dict[str, Any]) -> dict[str, Any]:
+        envelope = self._request(
+            "POST",
+            "/api/v1/research/safety-audits",
+            json_body={"scope_payload": scope_payload},
+            headers=self._trading_headers(),
+        )
+        return envelope.get("data") or {}
+
+    def list_research_reports(self, *, limit: int = 100) -> dict[str, Any]:
+        envelope = self._request(
+            "GET",
+            f"/api/v1/research/reports?limit={limit}",
+            headers=self._trading_headers(),
+        )
+        return envelope.get("data") or {}
+
+    def get_research_report(self, report_id: str) -> dict[str, Any]:
+        envelope = self._request(
+            "GET",
+            f"/api/v1/research/reports/{report_id}",
+            headers=self._trading_headers(),
+        )
+        return envelope.get("data") or {}
+
+    def create_research_report(
+        self,
+        report_type: str,
+        artifacts: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        envelope = self._request(
+            "POST",
+            "/api/v1/research/reports",
+            json_body={"report_type": report_type, "artifacts": artifacts or {}},
+            headers=self._trading_headers(),
+        )
+        return envelope.get("data") or {}

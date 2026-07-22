@@ -15,6 +15,7 @@ from intelligence_maxxxing.api.routes import (
     hypotheses,
     observations,
     research_factory,
+    research_m3b,
     trading,
     wellbeing,
 )
@@ -65,6 +66,7 @@ def create_app(settings: EngineSettings | None = None) -> FastAPI:
     api_v1.include_router(wellbeing.router, tags=["wellbeing"])
     api_v1.include_router(trading.router, tags=["trading"])
     api_v1.include_router(research_factory.router, tags=["research-factory-m3a"])
+    api_v1.include_router(research_m3b.router, tags=["research-factory-m3b"])
     app.include_router(api_v1)
 
     return app
