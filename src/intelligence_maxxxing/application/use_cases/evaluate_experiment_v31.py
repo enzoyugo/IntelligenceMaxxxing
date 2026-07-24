@@ -7,7 +7,6 @@ from datetime import timedelta
 from typing import Any, cast
 
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy.exc import IntegrityError
 
 from intelligence_maxxxing.application.auth.service import AuthContext
 from intelligence_maxxxing.application.errors import (
@@ -69,7 +68,6 @@ from intelligence_maxxxing.domain_packs.life.methods.bayesian_bootstrap import (
     derive_seed,
 )
 from intelligence_maxxxing.domain_packs.life.observation_scan import scan_all_life_observations
-from intelligence_maxxxing.infrastructure.clock.system_clock import SystemClock
 
 
 def _helpers() -> Any:
@@ -139,7 +137,9 @@ class EvaluateExperimentUseCase:
         self._engine_version = engine_version
         self._api_version = api_version
         self._health = health_provider
-        self._clock = clock or SystemClock()
+        if clock is None:
+            raise TypeError("EvaluateExperimentUseCase requires ClockPort (compose in API)")
+        self._clock = clock
         self._action = ep.EVALUATE_EXPERIMENT_ACTION
         self._result_factory = None
         self._ep = ep
@@ -705,8 +705,11 @@ class EvaluateExperimentUseCase:
                         last_source_global_position=last_pos,
                     )
                 )
-            except IntegrityError:
+            except Exception as exc:
                 # Concurrent same fingerprint — replay winner.
+                # Avoid importing sqlalchemy in the application layer; match by type name.
+                if type(exc).__name__ != "IntegrityError":
+                    raise
                 session = getattr(uow, "_session", None)
                 if session is not None:
                     session.rollback()

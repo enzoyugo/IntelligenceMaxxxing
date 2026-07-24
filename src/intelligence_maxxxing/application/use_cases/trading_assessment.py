@@ -9,16 +9,16 @@ from datetime import datetime, timezone
 from typing import Any
 
 from intelligence_maxxxing.application.errors import ApplicationError, IdempotencyConflictError
+from intelligence_maxxxing.application.ports.trading_bridge import (
+    TradingIdempotencyStorePort,
+    TradingObservationStorePort,
+)
 from intelligence_maxxxing.domain_packs.trading.policy_v1 import (
     POLICY_FROZEN_AT,
     POLICY_ID,
     POLICY_VERSION,
     RULESET_HASH,
     assess_observation,
-)
-from intelligence_maxxxing.infrastructure.trading.jsonl_store import TradingJsonlStore
-from intelligence_maxxxing.infrastructure.trading.sqlite_idempotency_store import (
-    TradingSqliteIdempotencyStore,
 )
 
 
@@ -45,13 +45,12 @@ def _hash(obj: Any) -> str:
 class TradingAssessmentService:
     def __init__(
         self,
-        store: TradingJsonlStore | None = None,
-        idem_store: TradingSqliteIdempotencyStore | None = None,
+        store: TradingObservationStorePort,
+        idem_store: TradingIdempotencyStorePort,
     ) -> None:
-        self.store = store or TradingJsonlStore()
-        self.idem_store = idem_store or TradingSqliteIdempotencyStore(
-            path=(self.store.root / "trading_idempotency_v1.sqlite3")
-        )
+        # Concrete stores are composed in the API/composition root — not here.
+        self.store = store
+        self.idem_store = idem_store
 
     def active_policy(self) -> dict[str, Any]:
         return {

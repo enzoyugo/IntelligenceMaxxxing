@@ -39,11 +39,20 @@ def _auth_or_dev(
 
 
 def get_trading_service() -> TradingAssessmentService:
-    return TradingAssessmentService()
+    from intelligence_maxxxing.infrastructure.trading.jsonl_store import TradingJsonlStore
+    from intelligence_maxxxing.infrastructure.trading.sqlite_idempotency_store import (
+        TradingSqliteIdempotencyStore,
+    )
+
+    store = TradingJsonlStore()
+    idem = TradingSqliteIdempotencyStore(path=(store.root / "trading_idempotency_v1.sqlite3"))
+    return TradingAssessmentService(store=store, idem_store=idem)
 
 
 def get_agent_service() -> TradingAgentService:
-    return TradingAgentService()
+    from intelligence_maxxxing.infrastructure.trading.jsonl_store import TradingJsonlStore
+
+    return TradingAgentService(store=TradingJsonlStore())
 
 
 @router.get("/health", response_model=ApiResponseEnvelope)

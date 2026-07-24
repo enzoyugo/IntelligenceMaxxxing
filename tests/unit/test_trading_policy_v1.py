@@ -112,7 +112,15 @@ def test_idempotent_service(tmp_path) -> None:
     from intelligence_maxxxing.application.use_cases.trading_assessment import TradingAssessmentService
     from intelligence_maxxxing.infrastructure.trading.jsonl_store import TradingJsonlStore
 
-    svc = TradingAssessmentService(TradingJsonlStore(tmp_path))
+    from intelligence_maxxxing.infrastructure.trading.sqlite_idempotency_store import (
+        TradingSqliteIdempotencyStore,
+    )
+
+    store = TradingJsonlStore(tmp_path)
+    svc = TradingAssessmentService(
+        store=store,
+        idem_store=TradingSqliteIdempotencyStore(path=tmp_path / "idem.sqlite3"),
+    )
     a = svc.assess(_obs())
     b = svc.assess(_obs())
     assert a["assessment_id"] == b["assessment_id"]

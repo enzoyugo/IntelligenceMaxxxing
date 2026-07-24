@@ -116,12 +116,15 @@ def get_propose_hypothesis_use_case(request: Request) -> ProposeHypothesisUseCas
 
 
 def get_activate_hypothesis_use_case(request: Request) -> ActivateHypothesisUseCase:
+    from intelligence_maxxxing.infrastructure.clock.system_clock import SystemClock
+
     settings = get_app_settings(request)
     return ActivateHypothesisUseCase(
         uow=_uow(request),
         engine_version=settings.engine_version,
         api_version=API_VERSION,
         health_provider=get_health_snapshot_provider(request),
+        clock=SystemClock(),
     )
 
 
@@ -136,12 +139,15 @@ def get_retire_hypothesis_use_case(request: Request) -> RetireHypothesisUseCase:
 
 
 def get_evaluate_experiment_use_case(request: Request) -> EvaluateExperimentUseCase:
+    from intelligence_maxxxing.infrastructure.clock.system_clock import SystemClock
+
     settings = get_app_settings(request)
     return EvaluateExperimentUseCase(
         uow=_uow(request),
         engine_version=settings.engine_version,
         api_version=API_VERSION,
         health_provider=get_health_snapshot_provider(request),
+        clock=SystemClock(),
     )
 
 

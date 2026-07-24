@@ -46,7 +46,6 @@ from intelligence_maxxxing.domain.common.epistemic import (
     HypothesisStatus,
     TerminalReason,
 )
-from intelligence_maxxxing.infrastructure.clock.system_clock import SystemClock
 from intelligence_maxxxing.domain.common.identifiers import (
     AUDIT_PREFIX,
     BELIEF_PREFIX,
@@ -481,7 +480,9 @@ class ActivateHypothesisUseCase(IdempotentWriteMixin):
         self._engine_version = engine_version
         self._api_version = api_version
         self._health = health_provider
-        self._clock = clock or SystemClock()
+        if clock is None:
+            raise TypeError("ActivateHypothesisUseCase requires ClockPort (compose in API)")
+        self._clock = clock
         self._action = ACTIVATE_HYPOTHESIS_ACTION
         self._result_factory = None  # custom replay via hypothesis projection
 

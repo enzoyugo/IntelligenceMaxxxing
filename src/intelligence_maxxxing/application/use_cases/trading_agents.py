@@ -14,7 +14,6 @@ from intelligence_maxxxing.domain_packs.trading.agents.orchestrator_v1 import M2
 from intelligence_maxxxing.domain_packs.trading.agents.shadow_adjudicator_v1 import (
     M2ShadowAdjudicatorV1,
 )
-from intelligence_maxxxing.infrastructure.trading.jsonl_store import TradingJsonlStore
 
 
 class TradingAgentError(ApplicationError):
@@ -26,8 +25,9 @@ class TradingAgentNotFoundError(ApplicationError):
 
 
 class TradingAgentService:
-    def __init__(self, store: TradingJsonlStore | None = None) -> None:
-        self.store = store or TradingJsonlStore()
+    def __init__(self, store: Any) -> None:
+        # Concrete TradingJsonlStore is composed in the API layer.
+        self.store = store
         self.orchestrator = M2AgentOrchestratorV1()
         self.context_agent = ContextAgentV1()
         self.anomaly_agent = AnomalyAgentV1()
