@@ -63,7 +63,7 @@ class IntelligenceMaxxxingClient:
         base_url: str = "http://127.0.0.1:8100",
         *,
         credential_secret: str | None = None,
-        trading_bridge_token: str | None = "tmx-im-local-bridge-v1",
+        trading_bridge_token: str | None = None,
         timeout_seconds: float = 10.0,
         http_client: httpx.Client | None = None,
     ) -> None:

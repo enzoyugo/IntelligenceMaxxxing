@@ -19,21 +19,15 @@ from intelligence_maxxxing.contracts.api.envelope import ApiResponseEnvelope
 
 router = APIRouter(prefix="/research", tags=["research-factory-m3a"])
 
-_DEFAULT_BRIDGE_TOKEN = "tmx-im-local-bridge-v1"
+from intelligence_maxxxing.api.bridge_auth_v1 import authorize_bridge_write, bridge_token_ok
 
 
 def _token_ok(token: str | None) -> bool:
-    expected = os.environ.get("IM_TRADING_BRIDGE_TOKEN", _DEFAULT_BRIDGE_TOKEN)
-    return bool(token) and token == expected
+    return bridge_token_ok(token)
 
 
 def _auth_or_dev(token: str | None, settings: EngineSettings) -> JSONResponse | None:
-    if _token_ok(token) or settings.engine_env in {"development", "test"}:
-        return None
-    return JSONResponse(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        content={"ok": False, "error": {"code": "AUTHENTICATION_REQUIRED", "message": "token required"}},
-    )
+    return authorize_bridge_write(token, settings)
 
 
 def get_rf_service() -> ResearchFactoryService:

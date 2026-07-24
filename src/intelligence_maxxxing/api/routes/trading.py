@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
-import os
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Header, Request, status
 from fastapi.responses import JSONResponse
 
+from intelligence_maxxxing.api.bridge_auth_v1 import (
+    authorize_bridge_write,
+    bridge_token_ok,
+)
 from intelligence_maxxxing.api.envelope import build_meta, success_envelope
 from intelligence_maxxxing.application.errors import ApplicationError, IdempotencyConflictError
 from intelligence_maxxxing.application.use_cases.trading_assessment import (
@@ -23,28 +26,16 @@ from intelligence_maxxxing.contracts.api.envelope import ApiResponseEnvelope
 
 router = APIRouter(prefix="/trading", tags=["trading"])
 
-_DEFAULT_BRIDGE_TOKEN = "tmx-im-local-bridge-v1"
-
 
 def _bridge_token_ok(token: str | None) -> bool:
-    expected = os.environ.get("IM_TRADING_BRIDGE_TOKEN", _DEFAULT_BRIDGE_TOKEN)
-    if not expected:
-        return False
-    return bool(token) and token == expected
+    return bridge_token_ok(token)
 
 
 def _auth_or_dev(
     token: str | None, settings: EngineSettings
 ) -> JSONResponse | None:
-    if _bridge_token_ok(token) or settings.engine_env in {"development", "test"}:
-        return None
-    return JSONResponse(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        content={
-            "ok": False,
-            "error": {"code": "AUTHENTICATION_REQUIRED", "message": "bridge token required"},
-        },
-    )
+    # development alone does not bypass; test / explicit bypass / valid token only.
+    return authorize_bridge_write(token, settings)
 
 
 def get_trading_service() -> TradingAssessmentService:
@@ -78,17 +69,9 @@ def active_policy(
     service: Annotated[TradingAssessmentService, Depends(get_trading_service)],
     x_trading_bridge_token: Annotated[str | None, Header()] = None,
 ) -> Any:
-    if not _bridge_token_ok(x_trading_bridge_token) and settings.engine_env not in {
-        "development",
-        "test",
-    }:
-        return JSONResponse(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            content={
-                "ok": False,
-                "error": {"code": "AUTHENTICATION_REQUIRED", "message": "bridge token required"},
-            },
-        )
+    denied = _auth_or_dev(x_trading_bridge_token, settings)
+    if denied is not None:
+        return denied
     request_id = getattr(request.state, "request_id", "req_trading_policy")
     return success_envelope(
         service.active_policy(),
@@ -104,17 +87,9 @@ def get_assessment(
     service: Annotated[TradingAssessmentService, Depends(get_trading_service)],
     x_trading_bridge_token: Annotated[str | None, Header()] = None,
 ) -> Any:
-    if not _bridge_token_ok(x_trading_bridge_token) and settings.engine_env not in {
-        "development",
-        "test",
-    }:
-        return JSONResponse(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            content={
-                "ok": False,
-                "error": {"code": "AUTHENTICATION_REQUIRED", "message": "bridge token required"},
-            },
-        )
+    denied = _auth_or_dev(x_trading_bridge_token, settings)
+    if denied is not None:
+        return denied
     request_id = getattr(request.state, "request_id", "req_trading_get")
     try:
         data = service.get_assessment(assessment_id)
@@ -141,17 +116,9 @@ def create_assessment(
     x_trading_bridge_token: Annotated[str | None, Header()] = None,
     idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
 ) -> Any:
-    if not _bridge_token_ok(x_trading_bridge_token) and settings.engine_env not in {
-        "development",
-        "test",
-    }:
-        return JSONResponse(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            content={
-                "ok": False,
-                "error": {"code": "AUTHENTICATION_REQUIRED", "message": "bridge token required"},
-            },
-        )
+    denied = _auth_or_dev(x_trading_bridge_token, settings)
+    if denied is not None:
+        return denied
     request_id = getattr(request.state, "request_id", "req_trading_assess")
     if idempotency_key and not body.get("idempotency_key"):
         body = {**body, "idempotency_key": idempotency_key}
@@ -182,10 +149,8 @@ def agents_health(
     x_trading_bridge_token: Annotated[str | None, Header()] = None,
 ) -> Any:
     denied = _auth_or_dev(x_trading_bridge_token, settings)
-    if denied is not None and settings.engine_env not in {"development", "test"}:
-        # Health readable in development; still require token in production-like envs.
-        if not _bridge_token_ok(x_trading_bridge_token):
-            pass
+    if denied is not None:
+        return denied
     request_id = getattr(request.state, "request_id", "req_trading_agents_health")
     return success_envelope(
         service.agents_health(),
