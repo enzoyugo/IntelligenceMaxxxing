@@ -43,24 +43,45 @@ router = APIRouter()
 public_router = APIRouter()
 
 
-def _commit_sha(settings: EngineSettings) -> str | None:
-    if settings.engine_commit_sha:
-        return settings.engine_commit_sha
+def _capture_loaded_commit_at_process_start() -> tuple[str | None, str | None]:
+    """Freeze commit once per process — never re-probe moving HEAD on each request."""
     try:
+        import os
         import subprocess
         from pathlib import Path
 
+        env_full = (os.environ.get("IM_LOADED_COMMIT") or os.environ.get("ENGINE_COMMIT_SHA") or "").strip()
+        env_short = (os.environ.get("IM_LOADED_COMMIT_SHORT") or "").strip()
+        if env_full:
+            return env_full, env_short or env_full[:12]
         root = Path(__file__).resolve().parents[4]
-        out = subprocess.check_output(
+        full = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"],
+            cwd=root,
+            text=True,
+            stderr=subprocess.DEVNULL,
+            timeout=2,
+        ).strip()
+        short = subprocess.check_output(
             ["git", "rev-parse", "--short", "HEAD"],
             cwd=root,
             text=True,
             stderr=subprocess.DEVNULL,
             timeout=2,
-        )
-        return out.strip() or None
+        ).strip()
+        return full or None, short or None
     except Exception:
-        return None
+        return None, None
+
+
+_PROCESS_LOADED_COMMIT_FULL, _PROCESS_LOADED_COMMIT_SHORT = _capture_loaded_commit_at_process_start()
+
+
+def _commit_sha(settings: EngineSettings) -> str | None:
+    if settings.engine_commit_sha:
+        return settings.engine_commit_sha
+    # Prefer full SHA for loaded-commit truth; keep short for backward-compatible clients.
+    return _PROCESS_LOADED_COMMIT_FULL or _PROCESS_LOADED_COMMIT_SHORT
 
 
 def _migration_revision() -> str | None:
@@ -89,6 +110,9 @@ def live(
         "status": "ok",
         "service": "IntelligenceMaxxxing",
         "commit_sha": _commit_sha(settings),
+        "loaded_commit": _PROCESS_LOADED_COMMIT_FULL or settings.engine_commit_sha,
+        "loaded_commit_short": _PROCESS_LOADED_COMMIT_SHORT
+        or (_PROCESS_LOADED_COMMIT_FULL[:12] if _PROCESS_LOADED_COMMIT_FULL else None),
         "api_version": API_VERSION,
         "engine_version": settings.engine_version,
         "wellbeing": {

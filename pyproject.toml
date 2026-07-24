@@ -117,3 +117,31 @@ name = "Engine Core never imports the SDK or external applications"
 type = "forbidden"
 source_modules = ["intelligence_maxxxing"]
 forbidden_modules = ["intelligence_maxxxing_client"]
+
+[[tool.importlinter.contracts]]
+name = "IM never imports TMX packages or storage modules"
+type = "forbidden"
+source_modules = ["intelligence_maxxxing", "intelligence_maxxxing_client"]
+forbidden_modules = [
+  "tradingmaxxing_v2",
+  "tradingmaxxing",
+]
+
+[[tool.importlinter.contracts]]
+name = "IM never depends on MetaTrader5 / broker SDKs"
+type = "forbidden"
+source_modules = ["intelligence_maxxxing", "intelligence_maxxxing_client"]
+forbidden_modules = [
+  "MetaTrader5",
+  "mt5",
+]
+
+[[tool.importlinter.contracts]]
+name = "Application must not import trading store or clock adapters"
+type = "forbidden"
+source_modules = ["intelligence_maxxxing.application"]
+forbidden_modules = [
+  "intelligence_maxxxing.infrastructure.trading",
+  "intelligence_maxxxing.infrastructure.clock",
+  "intelligence_maxxxing.infrastructure.database",
+]
