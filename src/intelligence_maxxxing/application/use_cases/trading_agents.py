@@ -9,6 +9,7 @@ from intelligence_maxxxing.domain_packs.trading.agent_bundle_v1 import active_bu
 from intelligence_maxxxing.domain_packs.trading.agents.anomaly_agent_v1 import AnomalyAgentV1
 from intelligence_maxxxing.domain_packs.trading.agents.context_agent_v1 import ContextAgentV1
 from intelligence_maxxxing.domain_packs.trading.agents.critic_agent_v1 import CriticAgentV1
+from intelligence_maxxxing.domain_packs.trading.agents.horizon_noise_agent_v1 import HorizonNoiseAgentV1
 from intelligence_maxxxing.domain_packs.trading.agents.orchestrator_v1 import M2AgentOrchestratorV1
 from intelligence_maxxxing.domain_packs.trading.agents.shadow_adjudicator_v1 import (
     M2ShadowAdjudicatorV1,
@@ -32,6 +33,7 @@ class TradingAgentService:
         self.anomaly_agent = AnomalyAgentV1()
         self.critic_agent = CriticAgentV1()
         self.adjudicator = M2ShadowAdjudicatorV1()
+        self.horizon_noise_agent = HorizonNoiseAgentV1()
 
     def active_bundle(self) -> dict[str, Any]:
         return active_bundle_manifest()
@@ -130,6 +132,40 @@ class TradingAgentService:
         row = self.store.get_shadow_adjudication(shadow_adjudication_id)
         if not row:
             raise TradingAgentNotFoundError(f"shadow adjudication not found: {shadow_adjudication_id}")
+        return row
+
+    def create_horizon_noise(self, body: dict[str, Any]) -> dict[str, Any]:
+        """Observational sidecar — does not alter official M2 bundle run or advisory."""
+        observation = body.get("observation") if isinstance(body.get("observation"), dict) else body
+        snap = body.get("pre_decision_horizon_snapshot") or body.get("horizon_snapshot") or {}
+        out = self.horizon_noise_agent.assess(
+            observation=observation if isinstance(observation, dict) else {},
+            pre_decision_horizon_snapshot=snap if isinstance(snap, dict) else {},
+            context_assessment=body.get("context_assessment")
+            if isinstance(body.get("context_assessment"), dict)
+            else None,
+            anomaly_findings=list(body.get("anomaly_findings") or []),
+            data_quality=body.get("data_quality") if isinstance(body.get("data_quality"), dict) else None,
+            diagnostic_prior_trusted=bool(body.get("diagnostic_prior_trusted")),
+        )
+        self.store.save_horizon_noise_assessment(out)
+        self.store.save_agent_run(
+            {
+                "agent_id": "HorizonNoiseAgentV1",
+                "artifact_id": out.get("horizon_assessment_id"),
+                "observation_id": (observation or {}).get("observation_id")
+                if isinstance(observation, dict)
+                else None,
+                "created_at_utc": out.get("created_at"),
+                "outside_frozen_m2_bundle": True,
+            }
+        )
+        return out
+
+    def get_horizon_noise(self, horizon_assessment_id: str) -> dict[str, Any]:
+        row = self.store.get_horizon_noise_assessment(horizon_assessment_id)
+        if not row:
+            raise TradingAgentNotFoundError(f"horizon noise not found: {horizon_assessment_id}")
         return row
 
     def run_bundle(self, *, observation: dict[str, Any], assessment: dict[str, Any]) -> dict[str, Any]:

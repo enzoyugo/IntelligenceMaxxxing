@@ -33,6 +33,8 @@ class TradingJsonlStore:
         self.agent_runs = self.root / "agent_runs.jsonl"
         self.agent_health_snapshots = self.root / "agent_health_snapshots.jsonl"
         self.retrospective_replay_manifests = self.root / "retrospective_replay_manifests.jsonl"
+        # Observational HorizonNoise sidecar (outside frozen M2 decision bundle).
+        self.horizon_noise_assessments = self.root / "trading_horizon_noise_assessments.jsonl"
         self.root.mkdir(parents=True, exist_ok=True)
 
     def _append(self, path: Path, row: dict[str, Any]) -> None:
@@ -88,6 +90,7 @@ class TradingJsonlStore:
             "anomaly_findings": len(self._read(self.anomaly_findings)),
             "critic_reviews": len(self._read(self.critic_reviews)),
             "shadow_adjudications": len(self._read(self.shadow_adjudications)),
+            "horizon_noise_assessments": len(self._read(self.horizon_noise_assessments)),
             "agent_runs": len(self._read(self.agent_runs)),
         }
 
@@ -129,6 +132,15 @@ class TradingJsonlStore:
 
     def save_agent_run(self, row: dict[str, Any]) -> None:
         self._append(self.agent_runs, row)
+
+    def save_horizon_noise_assessment(self, row: dict[str, Any]) -> None:
+        self._append(self.horizon_noise_assessments, row)
+
+    def get_horizon_noise_assessment(self, horizon_assessment_id: str) -> dict[str, Any] | None:
+        for row in self._read(self.horizon_noise_assessments):
+            if row.get("horizon_assessment_id") == horizon_assessment_id:
+                return row
+        return None
 
     def save_agent_bundle_registry(self, row: dict[str, Any]) -> None:
         self._append(self.agent_bundle_registry, row)

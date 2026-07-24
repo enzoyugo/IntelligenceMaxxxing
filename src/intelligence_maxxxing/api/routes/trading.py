@@ -421,6 +421,62 @@ def get_shadow_adjudication(
 
 
 @router.post(
+    "/horizon-noise-assessments",
+    response_model=ApiResponseEnvelope,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_horizon_noise_assessment(
+    body: dict[str, Any],
+    request: Request,
+    settings: Annotated[EngineSettings, Depends(get_settings)],
+    service: Annotated[TradingAgentService, Depends(get_agent_service)],
+    x_trading_bridge_token: Annotated[str | None, Header()] = None,
+) -> Any:
+    """Observational HorizonNoise sidecar — outside frozen M2 decision bundle; no TAKE/SKIP."""
+    denied = _auth_or_dev(x_trading_bridge_token, settings)
+    if denied is not None:
+        return denied
+    request_id = getattr(request.state, "request_id", "req_trading_horizon_noise")
+    try:
+        data = service.create_horizon_noise(body if isinstance(body, dict) else {})
+    except ApplicationError as exc:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"ok": False, "error": {"code": getattr(exc, "code", "ERROR"), "message": exc.message}},
+        )
+    return success_envelope(
+        data, build_meta(request_id, settings.engine_version, domain_pack="trading")
+    )
+
+
+@router.get(
+    "/horizon-noise-assessments/{horizon_assessment_id}",
+    response_model=ApiResponseEnvelope,
+)
+def get_horizon_noise_assessment(
+    horizon_assessment_id: str,
+    request: Request,
+    settings: Annotated[EngineSettings, Depends(get_settings)],
+    service: Annotated[TradingAgentService, Depends(get_agent_service)],
+    x_trading_bridge_token: Annotated[str | None, Header()] = None,
+) -> Any:
+    denied = _auth_or_dev(x_trading_bridge_token, settings)
+    if denied is not None:
+        return denied
+    request_id = getattr(request.state, "request_id", "req_trading_horizon_noise_get")
+    try:
+        data = service.get_horizon_noise(horizon_assessment_id)
+    except TradingAgentNotFoundError as exc:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"ok": False, "error": {"code": exc.code, "message": exc.message}},
+        )
+    return success_envelope(
+        data, build_meta(request_id, settings.engine_version, domain_pack="trading")
+    )
+
+
+@router.post(
     "/agent-bundle/runs",
     response_model=ApiResponseEnvelope,
     status_code=status.HTTP_201_CREATED,
