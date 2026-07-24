@@ -105,6 +105,16 @@ forbidden_modules = [
     "sqlalchemy",
     "fastapi",
 ]
+# Documented tooling exceptions — legacy wellbeing SQLAlchemy composition only (not TMX/broker).
+unmatched_ignore_imports_alerting = "error"
+ignore_imports = [
+    "intelligence_maxxxing.application.use_cases.wellbeing -> intelligence_maxxxing.infrastructure.database.tables",
+    "intelligence_maxxxing.application.use_cases.wellbeing -> sqlalchemy",
+    "intelligence_maxxxing.application.use_cases.wellbeing -> intelligence_maxxxing.domain_packs.life.wellbeing_v1",
+    "intelligence_maxxxing.domain_packs.life.wellbeing_v1 -> intelligence_maxxxing.domain_packs.life.exclusion_registry",
+    "intelligence_maxxxing.domain_packs.life.exclusion_registry -> intelligence_maxxxing.infrastructure.database.tables",
+    "intelligence_maxxxing.domain_packs.life.exclusion_registry -> sqlalchemy",
+]
 
 [[tool.importlinter.contracts]]
 name = "Public SDK never imports the Engine Core"
@@ -143,5 +153,6 @@ source_modules = ["intelligence_maxxxing.application"]
 forbidden_modules = [
   "intelligence_maxxxing.infrastructure.trading",
   "intelligence_maxxxing.infrastructure.clock",
-  "intelligence_maxxxing.infrastructure.database",
 ]
+# database.tables wellbeing debt is covered by the infrastructure contract ignore list.
+# This contract proves the 8eba658 trading/clock composition-root repair stays green.
