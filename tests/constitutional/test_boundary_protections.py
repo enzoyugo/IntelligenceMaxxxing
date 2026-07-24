@@ -75,6 +75,8 @@ def test_llm_cannot_write_belief(app: FastAPI) -> None:
         "/api/v1/trading/critic-reviews",
         "/api/v1/trading/shadow-adjudications",
         "/api/v1/trading/agent-bundle/runs",
+        # HorizonNoise observatory — outside frozen M2 belief path; advisory only.
+        "/api/v1/trading/horizon-noise-assessments",
         # M3A Research Factory Foundation — append-only research registries; no belief writes.
         "/api/v1/research/hypotheses",
         "/api/v1/research/evidence",

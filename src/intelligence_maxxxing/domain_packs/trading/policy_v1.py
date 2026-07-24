@@ -1,4 +1,4 @@
-﻿"""IM_TRADING_DECISION_POLICY 1.0.0 â€” deterministic, frozen, auditable."""
+"""IM_TRADING_DECISION_POLICY 1.0.0 â€” deterministic, frozen, auditable."""
 
 from __future__ import annotations
 
