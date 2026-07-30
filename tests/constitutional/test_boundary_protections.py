@@ -69,6 +69,7 @@ def test_llm_cannot_write_belief(app: FastAPI) -> None:
         "/api/v1/wellbeing/feedback",
         # TMX read-only trading assessment ingest — not belief writes; no TMX imports.
         "/api/v1/trading/assessments",
+        "/api/v1/trading/cmsr-assessments",
         # M2 agent artifacts — parallel non-authoritative research; no belief writes.
         "/api/v1/trading/context-assessments",
         "/api/v1/trading/anomaly-findings",

@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "tmx.im.cmsr.assessment.request.v1",
+  "title": "TMX to IM CMSR Assessment Request V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "request_id",
+    "experiment_id",
+    "setup_id",
+    "raw_setup_hash",
+    "strategy_id",
+    "decision_time",
+    "available_at_utc",
+    "idempotency_key",
+    "trader_view_snapshot",
+    "raw_setup",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": { "const": "tmx.im.cmsr.assessment.request.v1" },
+    "request_id": { "type": "string", "minLength": 1 },
+    "experiment_id": { "type": "string", "minLength": 1 },
+    "setup_id": { "type": "string", "minLength": 1 },
+    "raw_setup_hash": { "type": "string", "minLength": 64, "maxLength": 64 },
+    "strategy_id": { "type": "string", "minLength": 1 },
+    "decision_time": { "type": "string" },
+    "available_at_utc": { "type": "string" },
+    "idempotency_key": { "type": "string", "minLength": 1 },
+    "trader_view_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "snapshot_id",
+        "snapshot_hash",
+        "profile_id",
+        "decision_time",
+        "factors"
+      ],
+      "properties": {
+        "schema_version": { "type": "string" },
+        "snapshot_id": { "type": "string" },
+        "snapshot_hash": { "type": "string" },
+        "profile_id": { "type": "string" },
+        "decision_time": { "type": "string" },
+        "readiness": { "type": "object" },
+        "factors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "factor_id",
+              "state",
+              "value",
+              "confidence",
+              "available_at",
+              "observed_at",
+              "source_timestamp",
+              "classification"
+            ],
+            "properties": {
+              "factor_id": { "type": "string" },
+              "state": { "type": "string" },
+              "reason_code": { "type": ["string", "null"] },
+              "value": {},
+              "confidence": { "type": "number" },
+              "available_at": { "type": ["string", "null"] },
+              "observed_at": { "type": ["string", "null"] },
+              "source_timestamp": { "type": ["string", "null"] },
+              "classification": { "type": "string" },
+              "trust_tier": { "type": ["string", "null"] }
+            }
+          }
+        }
+      }
+    },
+    "raw_setup": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "setup_id",
+        "strategy_id",
+        "symbol",
+        "direction",
+        "decision_time",
+        "available_at",
+        "entry",
+        "stop",
+        "target"
+      ],
+      "properties": {
+        "setup_id": { "type": "string" },
+        "strategy_id": { "type": "string" },
+        "symbol": { "type": "string" },
+        "direction": { "type": "string" },
+        "decision_time": { "type": "string" },
+        "available_at": { "type": "string" },
+        "entry": { "type": "number" },
+        "stop": { "type": "number" },
+        "target": { "type": "number" }
+      }
+    },
+    "provenance": { "type": "object" }
+  },
+  "not": {
+    "anyOf": [
+      { "required": ["outcome"] },
+      { "required": ["exit_reason"] },
+      { "required": ["realized_R"] },
+      { "required": ["mfe"] },
+      { "required": ["mae"] },
+      { "required": ["pnl"] }
+    ]
+  }
+}

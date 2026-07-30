@@ -17,6 +17,12 @@ from intelligence_maxxxing.application.use_cases.trading_assessment import (
     TradingAssessmentNotFoundError,
     TradingAssessmentService,
 )
+from intelligence_maxxxing.application.use_cases.trading_cmsr_assessment import (
+    CmsrAssessmentNotFoundError,
+    CmsrCausalityError,
+    CmsrValidationError,
+    TradingCmsrAssessmentService,
+)
 from intelligence_maxxxing.application.use_cases.trading_agents import (
     TradingAgentNotFoundError,
     TradingAgentService,
@@ -47,6 +53,17 @@ def get_trading_service() -> TradingAssessmentService:
     store = TradingJsonlStore()
     idem = TradingSqliteIdempotencyStore(path=(store.root / "trading_idempotency_v1.sqlite3"))
     return TradingAssessmentService(store=store, idem_store=idem)
+
+
+def get_cmsr_service() -> TradingCmsrAssessmentService:
+    from intelligence_maxxxing.infrastructure.trading.jsonl_store import TradingJsonlStore
+    from intelligence_maxxxing.infrastructure.trading.sqlite_idempotency_store import (
+        TradingSqliteIdempotencyStore,
+    )
+
+    store = TradingJsonlStore()
+    idem = TradingSqliteIdempotencyStore(path=(store.root / "trading_cmsr_idempotency_v1.sqlite3"))
+    return TradingCmsrAssessmentService(store=store, idem_store=idem)
 
 
 def get_agent_service() -> TradingAgentService:
@@ -109,6 +126,79 @@ def get_assessment(
                 "ok": False,
                 "error": {"code": exc.code, "message": exc.message},
             },
+        )
+    return success_envelope(
+        data,
+        build_meta(request_id, settings.engine_version, domain_pack="trading"),
+    )
+
+
+@router.post(
+    "/cmsr-assessments",
+    response_model=ApiResponseEnvelope,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_cmsr_assessment(
+    body: dict[str, Any],
+    request: Request,
+    settings: Annotated[EngineSettings, Depends(get_settings)],
+    service: Annotated[TradingCmsrAssessmentService, Depends(get_cmsr_service)],
+    x_trading_bridge_token: Annotated[str | None, Header()] = None,
+    idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
+) -> Any:
+    denied = _auth_or_dev(x_trading_bridge_token, settings)
+    if denied is not None:
+        return denied
+    request_id = getattr(request.state, "request_id", "req_trading_cmsr")
+    if idempotency_key and not body.get("idempotency_key"):
+        body = {**body, "idempotency_key": idempotency_key}
+    try:
+        assessment = service.assess(body, request_id=request_id)
+    except IdempotencyConflictError as exc:
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={"ok": False, "error": {"code": exc.code, "message": exc.message}},
+        )
+    except CmsrCausalityError as exc:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"ok": False, "error": {"code": exc.code, "message": exc.message}},
+        )
+    except CmsrValidationError as exc:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"ok": False, "error": {"code": exc.code, "message": exc.message}},
+        )
+    except ApplicationError as exc:
+        code = getattr(exc, "code", "APPLICATION_ERROR")
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"ok": False, "error": {"code": code, "message": exc.message}},
+        )
+    return success_envelope(
+        assessment,
+        build_meta(request_id, settings.engine_version, domain_pack="trading"),
+    )
+
+
+@router.get("/cmsr-assessments/{assessment_id}", response_model=ApiResponseEnvelope)
+def get_cmsr_assessment(
+    assessment_id: str,
+    request: Request,
+    settings: Annotated[EngineSettings, Depends(get_settings)],
+    service: Annotated[TradingCmsrAssessmentService, Depends(get_cmsr_service)],
+    x_trading_bridge_token: Annotated[str | None, Header()] = None,
+) -> Any:
+    denied = _auth_or_dev(x_trading_bridge_token, settings)
+    if denied is not None:
+        return denied
+    request_id = getattr(request.state, "request_id", "req_trading_cmsr_get")
+    try:
+        data = service.get_assessment(assessment_id)
+    except CmsrAssessmentNotFoundError as exc:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"ok": False, "error": {"code": exc.code, "message": exc.message}},
         )
     return success_envelope(
         data,

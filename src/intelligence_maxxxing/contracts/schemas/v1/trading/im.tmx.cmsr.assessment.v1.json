@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "im.tmx.cmsr.assessment.v1",
+  "title": "IM to TMX CMSR Assessment V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "assessment_id",
+    "request_id",
+    "experiment_id",
+    "setup_id",
+    "raw_setup_hash",
+    "policy_id",
+    "policy_version",
+    "policy_frozen_at_utc",
+    "ruleset_hash",
+    "decision",
+    "reason_codes",
+    "factor_available_at_preserved",
+    "input_hash",
+    "output_hash",
+    "created_at_utc"
+  ],
+  "properties": {
+    "schema_version": { "const": "im.tmx.cmsr.assessment.v1" },
+    "assessment_id": { "type": "string" },
+    "request_id": { "type": "string" },
+    "experiment_id": { "type": "string" },
+    "setup_id": { "type": "string" },
+    "raw_setup_hash": { "type": "string", "minLength": 64, "maxLength": 64 },
+    "idempotency_key": { "type": ["string", "null"] },
+    "policy_id": { "const": "IM_CMSR_DECISION_POLICY" },
+    "policy_version": { "type": "string" },
+    "policy_frozen_at_utc": { "type": "string" },
+    "ruleset_hash": { "type": "string" },
+    "decision": {
+      "type": "string",
+      "enum": ["TAKE", "REJECT", "ABSTAIN", "REDUCE_CONFIDENCE"]
+    },
+    "confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+    "reason_codes": { "type": "array", "items": { "type": "string" } },
+    "factor_available_at_preserved": {
+      "type": "object",
+      "additionalProperties": { "type": ["string", "null"] }
+    },
+    "eligible_for_economic_evaluation": { "type": "boolean" },
+    "created_at_utc": { "type": "string" },
+    "input_hash": { "type": "string" },
+    "output_hash": { "type": "string" }
+  },
+  "not": {
+    "anyOf": [
+      { "required": ["outcome"] },
+      { "required": ["exit_reason"] },
+      { "required": ["realized_R"] },
+      { "required": ["mfe"] },
+      { "required": ["mae"] },
+      { "required": ["pnl"] }
+    ]
+  }
+}

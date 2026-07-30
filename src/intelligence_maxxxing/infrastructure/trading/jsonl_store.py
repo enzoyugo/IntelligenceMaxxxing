@@ -35,6 +35,8 @@ class TradingJsonlStore:
         self.retrospective_replay_manifests = self.root / "retrospective_replay_manifests.jsonl"
         # Observational HorizonNoise sidecar (outside frozen M2 decision bundle).
         self.horizon_noise_assessments = self.root / "trading_horizon_noise_assessments.jsonl"
+        self.cmsr_requests = self.root / "trading_cmsr_requests.jsonl"
+        self.cmsr_assessments = self.root / "trading_cmsr_assessments.jsonl"
         self.root.mkdir(parents=True, exist_ok=True)
 
     def _append(self, path: Path, row: dict[str, Any]) -> None:
@@ -91,8 +93,21 @@ class TradingJsonlStore:
             "critic_reviews": len(self._read(self.critic_reviews)),
             "shadow_adjudications": len(self._read(self.shadow_adjudications)),
             "horizon_noise_assessments": len(self._read(self.horizon_noise_assessments)),
+            "cmsr_assessments": len(self._read(self.cmsr_assessments)),
             "agent_runs": len(self._read(self.agent_runs)),
         }
+
+    def save_cmsr_request(self, row: dict[str, Any]) -> None:
+        self._append(self.cmsr_requests, row)
+
+    def save_cmsr_assessment(self, row: dict[str, Any]) -> None:
+        self._append(self.cmsr_assessments, row)
+
+    def get_cmsr_assessment(self, assessment_id: str) -> dict[str, Any] | None:
+        for row in self._read(self.cmsr_assessments):
+            if row.get("assessment_id") == assessment_id:
+                return row
+        return None
 
     def save_context_assessment(self, row: dict[str, Any]) -> None:
         self._append(self.context_assessments, row)
