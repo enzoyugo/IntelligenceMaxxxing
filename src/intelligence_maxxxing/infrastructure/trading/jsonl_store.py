@@ -37,6 +37,8 @@ class TradingJsonlStore:
         self.horizon_noise_assessments = self.root / "trading_horizon_noise_assessments.jsonl"
         self.cmsr_requests = self.root / "trading_cmsr_requests.jsonl"
         self.cmsr_assessments = self.root / "trading_cmsr_assessments.jsonl"
+        self.strategy_requests = self.root / "trading_strategy_requests.jsonl"
+        self.strategy_assessments = self.root / "trading_strategy_assessments.jsonl"
         self.root.mkdir(parents=True, exist_ok=True)
 
     def _append(self, path: Path, row: dict[str, Any]) -> None:
@@ -94,6 +96,7 @@ class TradingJsonlStore:
             "shadow_adjudications": len(self._read(self.shadow_adjudications)),
             "horizon_noise_assessments": len(self._read(self.horizon_noise_assessments)),
             "cmsr_assessments": len(self._read(self.cmsr_assessments)),
+            "strategy_assessments": len(self._read(self.strategy_assessments)),
             "agent_runs": len(self._read(self.agent_runs)),
         }
 
@@ -105,6 +108,18 @@ class TradingJsonlStore:
 
     def get_cmsr_assessment(self, assessment_id: str) -> dict[str, Any] | None:
         for row in self._read(self.cmsr_assessments):
+            if row.get("assessment_id") == assessment_id:
+                return row
+        return None
+
+    def save_strategy_request(self, row: dict[str, Any]) -> None:
+        self._append(self.strategy_requests, row)
+
+    def save_strategy_assessment(self, row: dict[str, Any]) -> None:
+        self._append(self.strategy_assessments, row)
+
+    def get_strategy_assessment(self, assessment_id: str) -> dict[str, Any] | None:
+        for row in self._read(self.strategy_assessments):
             if row.get("assessment_id") == assessment_id:
                 return row
         return None

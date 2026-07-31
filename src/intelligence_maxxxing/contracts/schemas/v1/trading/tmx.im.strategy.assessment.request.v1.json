@@ -1,0 +1,116 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "tmx.im.strategy.assessment.request.v1",
+  "title": "TMX to IM Generic Strategy Assessment Request V1",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "request_id",
+    "run_id",
+    "raw_setup_id",
+    "idempotency_key",
+    "strategy",
+    "market",
+    "setup",
+    "trader_view",
+    "costs",
+    "lineage"
+  ],
+  "properties": {
+    "schema_version": { "const": "tmx.im.strategy.assessment.request.v1" },
+    "request_id": { "type": "string", "minLength": 1 },
+    "run_id": { "type": "string", "minLength": 1 },
+    "raw_setup_id": { "type": "string", "minLength": 1 },
+    "idempotency_key": { "type": "string", "minLength": 1 },
+    "strategy": {
+      "type": "object",
+      "required": ["strategy_id", "strategy_version", "family", "profile_version"],
+      "properties": {
+        "strategy_id": { "type": "string" },
+        "strategy_version": { "type": "string" },
+        "family": { "type": "string" },
+        "profile_version": { "type": "string" }
+      }
+    },
+    "market": {
+      "type": "object",
+      "required": ["market", "symbol", "timeframe", "signal_time", "available_at"],
+      "properties": {
+        "market": { "type": "string" },
+        "symbol": { "type": "string" },
+        "timeframe": { "type": "string" },
+        "signal_time": { "type": "string" },
+        "available_at": { "type": "string" }
+      }
+    },
+    "setup": {
+      "type": "object",
+      "required": ["direction", "entry", "stop"],
+      "properties": {
+        "direction": { "type": "string" },
+        "entry": { "type": "number" },
+        "stop": { "type": "number" },
+        "target": { "type": ["number", "null"] },
+        "target_rr": { "type": ["number", "null"] },
+        "reason_codes": { "type": "array", "items": { "type": "string" } },
+        "causal_features": { "type": "object" }
+      }
+    },
+    "trader_view": {
+      "type": "object",
+      "required": ["snapshot_version"],
+      "properties": {
+        "snapshot_version": { "type": "string" },
+        "factor_states": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "factor_id": { "type": "string" },
+              "status": { "type": "string" },
+              "value": {},
+              "confidence": { "type": "number" },
+              "available_at": { "type": ["string", "null"] },
+              "missing_reason": { "type": ["string", "null"] },
+              "strategy_criticality": { "type": "string" }
+            }
+          }
+        },
+        "factors": { "type": "array" },
+        "data_quality": { "type": "object" }
+      }
+    },
+    "costs": {
+      "type": "object",
+      "required": ["scenario_id"],
+      "properties": {
+        "scenario_id": { "type": "string" },
+        "commission_r": { "type": ["number", "null"] },
+        "spread_r": { "type": ["number", "null"] },
+        "slippage_r": { "type": ["number", "null"] },
+        "cost_completeness": { "type": ["string", "null"] }
+      }
+    },
+    "lineage": {
+      "type": "object",
+      "properties": {
+        "strategy_hash": { "type": ["string", "null"] },
+        "dataset_hash": { "type": ["string", "null"] },
+        "parameter_hash": { "type": ["string", "null"] },
+        "tmx_commit": { "type": ["string", "null"] },
+        "im_commit": { "type": ["string", "null"] }
+      }
+    }
+  },
+  "not": {
+    "anyOf": [
+      { "required": ["outcome"] },
+      { "required": ["exit_reason"] },
+      { "required": ["realized_R"] },
+      { "required": ["mfe"] },
+      { "required": ["mae"] },
+      { "required": ["pnl"] }
+    ]
+  }
+}

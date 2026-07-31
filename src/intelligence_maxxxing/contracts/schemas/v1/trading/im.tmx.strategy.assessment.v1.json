@@ -1,0 +1,67 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "im.tmx.strategy.assessment.v1",
+  "title": "IM to TMX Generic Strategy Assessment V1",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "assessment_id",
+    "request_id",
+    "run_id",
+    "raw_setup_id",
+    "strategy",
+    "decision",
+    "reason_codes",
+    "profile_version",
+    "research_only",
+    "factor_available_at_preserved",
+    "input_hash",
+    "output_hash",
+    "created_at_utc"
+  ],
+  "properties": {
+    "schema_version": { "const": "im.tmx.strategy.assessment.v1" },
+    "assessment_id": { "type": "string" },
+    "request_id": { "type": "string" },
+    "run_id": { "type": "string" },
+    "raw_setup_id": { "type": "string" },
+    "idempotency_key": { "type": ["string", "null"] },
+    "strategy": { "type": "object" },
+    "market": { "type": "object" },
+    "setup": { "type": "object" },
+    "lineage": { "type": "object" },
+    "decision": {
+      "type": "string",
+      "enum": ["TAKE", "REJECT", "ABSTAIN"]
+    },
+    "confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+    "reason_codes": { "type": "array", "items": { "type": "string" } },
+    "evidence_for": { "type": "array", "items": { "type": "string" } },
+    "evidence_against": { "type": "array", "items": { "type": "string" } },
+    "factor_contributions": { "type": "object" },
+    "factor_available_at_preserved": {
+      "type": "object",
+      "additionalProperties": { "type": ["string", "null"] }
+    },
+    "eligible_for_economic_evaluation": { "type": "boolean" },
+    "profile_version": { "type": "string" },
+    "profile_frozen_at_utc": { "type": "string" },
+    "strategy_id": { "type": ["string", "null"] },
+    "family": { "type": ["string", "null"] },
+    "research_only": { "const": true },
+    "created_at_utc": { "type": "string" },
+    "input_hash": { "type": "string" },
+    "output_hash": { "type": "string" }
+  },
+  "not": {
+    "anyOf": [
+      { "required": ["outcome"] },
+      { "required": ["exit_reason"] },
+      { "required": ["realized_R"] },
+      { "required": ["mfe"] },
+      { "required": ["mae"] },
+      { "required": ["pnl"] }
+    ]
+  }
+}
