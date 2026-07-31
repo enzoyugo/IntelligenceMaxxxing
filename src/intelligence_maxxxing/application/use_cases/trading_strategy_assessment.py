@@ -82,35 +82,40 @@ class TradingStrategyAssessmentService:
                 raise StrategyCausalityError(";".join(validation["errors"][:6]))
             raise StrategyValidationError(";".join(validation["errors"][:6]))
 
+        import os
+
         idem = str(request.get("idempotency_key") or "")
         if not idem:
             raise StrategyValidationError("idempotency_key required")
 
         payload_hash = content_hash(request)
         created = _utc()
+        # Light mode: pure policy + response (TMX owns resume cache). Full mode: SQLite+JSONL.
+        light = (os.environ.get("IM_STRATEGY_ASSESSMENT_LIGHT_PERSIST") or "").strip() == "1"
 
-        claim = self.idem_store.claim_or_get(
-            idempotency_key=idem,
-            request_hash=payload_hash,
-            created_at=created,
-        )
-        if claim.get("status") == "CONFLICT":
-            raise IdempotencyConflictError(
-                "idempotency key reused with a different strategy request payload"
+        if not light:
+            claim = self.idem_store.claim_or_get(
+                idempotency_key=idem,
+                request_hash=payload_hash,
+                created_at=created,
             )
-        if claim.get("status") == "COMPLETE" and claim.get("response"):
-            return claim["response"]
-        if claim.get("status") == "PENDING":
-            waited = self.idem_store.wait_complete(
-                idempotency_key=idem, request_hash=payload_hash
-            )
-            if waited and waited.get("status") == "CONFLICT":
+            if claim.get("status") == "CONFLICT":
                 raise IdempotencyConflictError(
                     "idempotency key reused with a different strategy request payload"
                 )
-            if waited and waited.get("status") == "COMPLETE" and waited.get("response"):
-                return waited["response"]
-            raise StrategyAssessmentError("idempotency pending; retry shortly")
+            if claim.get("status") == "COMPLETE" and claim.get("response"):
+                return claim["response"]
+            if claim.get("status") == "PENDING":
+                waited = self.idem_store.wait_complete(
+                    idempotency_key=idem, request_hash=payload_hash
+                )
+                if waited and waited.get("status") == "CONFLICT":
+                    raise IdempotencyConflictError(
+                        "idempotency key reused with a different strategy request payload"
+                    )
+                if waited and waited.get("status") == "COMPLETE" and waited.get("response"):
+                    return waited["response"]
+                raise StrategyAssessmentError("idempotency pending; retry shortly")
 
         try:
             from intelligence_maxxxing.domain_packs.trading.strategy_profiles_v1 import (
@@ -137,6 +142,7 @@ class TradingStrategyAssessmentService:
                 **policy_out,
                 "created_at_utc": created,
                 "input_hash": payload_hash,
+                "light_persist": light,
             }
             body["output_hash"] = _hash({k: v for k, v in body.items() if k != "output_hash"})
 
@@ -144,10 +150,6 @@ class TradingStrategyAssessmentService:
             if not check["ok"]:
                 raise StrategyAssessmentError(";".join(check["errors"][:6]))
 
-            import os
-
-            # Light persist: SQLite idempotency only (benchmark throughput). Full JSONL when unset.
-            light = (os.environ.get("IM_STRATEGY_ASSESSMENT_LIGHT_PERSIST") or "").strip() == "1"
             if not light:
                 save_request = getattr(self.store, "save_strategy_request", None)
                 if callable(save_request):
@@ -173,17 +175,18 @@ class TradingStrategyAssessmentService:
                         "lane": "strategy",
                     }
                 )
-            self.idem_store.complete(
-                idempotency_key=idem,
-                request_hash=payload_hash,
-                observation_id=None,
-                assessment_id=assessment_id,
-                policy_version=PROFILE_VERSION,
-                response=body,
-                response_hash=str(body["output_hash"]),
-                completed_at=_utc(),
-            )
+                self.idem_store.complete(
+                    idempotency_key=idem,
+                    request_hash=payload_hash,
+                    observation_id=None,
+                    assessment_id=assessment_id,
+                    policy_version=PROFILE_VERSION,
+                    response=body,
+                    response_hash=str(body["output_hash"]),
+                    completed_at=_utc(),
+                )
             return body
         except Exception:
-            self.idem_store.mark_failed(idempotency_key=idem, request_hash=payload_hash)
+            if not light:
+                self.idem_store.mark_failed(idempotency_key=idem, request_hash=payload_hash)
             raise
