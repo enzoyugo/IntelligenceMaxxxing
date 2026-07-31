@@ -144,30 +144,35 @@ class TradingStrategyAssessmentService:
             if not check["ok"]:
                 raise StrategyAssessmentError(";".join(check["errors"][:6]))
 
-            save_request = getattr(self.store, "save_strategy_request", None)
-            if callable(save_request):
-                save_request(
+            import os
+
+            # Light persist: SQLite idempotency only (benchmark throughput). Full JSONL when unset.
+            light = (os.environ.get("IM_STRATEGY_ASSESSMENT_LIGHT_PERSIST") or "").strip() == "1"
+            if not light:
+                save_request = getattr(self.store, "save_strategy_request", None)
+                if callable(save_request):
+                    save_request(
+                        {
+                            "stored_at_utc": _utc(),
+                            "request_id": req_id,
+                            "idempotency_key": idem,
+                            "payload_hash": payload_hash,
+                            "request": request,
+                        }
+                    )
+                save_strategy = getattr(self.store, "save_strategy_assessment", None)
+                if callable(save_strategy):
+                    save_strategy(body)
+                self.store.save_idempotency(
                     {
-                        "stored_at_utc": _utc(),
-                        "request_id": req_id,
                         "idempotency_key": idem,
                         "payload_hash": payload_hash,
-                        "request": request,
+                        "assessment_id": assessment_id,
+                        "created_at_utc": created,
+                        "coordination": "sqlite_wal_v1",
+                        "lane": "strategy",
                     }
                 )
-            save_strategy = getattr(self.store, "save_strategy_assessment", None)
-            if callable(save_strategy):
-                save_strategy(body)
-            self.store.save_idempotency(
-                {
-                    "idempotency_key": idem,
-                    "payload_hash": payload_hash,
-                    "assessment_id": assessment_id,
-                    "created_at_utc": created,
-                    "coordination": "sqlite_wal_v1",
-                    "lane": "strategy",
-                }
-            )
             self.idem_store.complete(
                 idempotency_key=idem,
                 request_hash=payload_hash,
