@@ -19,7 +19,6 @@ from intelligence_maxxxing.domain_packs.trading.strategy_assessment_validate_v1 
     validate_strategy_assessment,
     validate_strategy_request,
 )
-from intelligence_maxxxing.domain_packs.trading.strategy_profiles_v1 import PROFILE_VERSION
 
 
 class StrategyAssessmentError(ApplicationError):
@@ -118,12 +117,22 @@ class TradingStrategyAssessmentService:
                 raise StrategyAssessmentError("idempotency pending; retry shortly")
 
         try:
-            from intelligence_maxxxing.domain_packs.trading.strategy_profiles_v1 import (
-                assess_strategy_request,
-            )
+            strategy = request.get("strategy") or {}
+            profile_version = str(strategy.get("profile_version") or "")
+            if profile_version.startswith("2"):
+                from intelligence_maxxxing.domain_packs.trading.strategy_profiles_v2 import (
+                    assess_strategy_request_v2,
+                )
+
+                policy_out = assess_strategy_request_v2(request)
+            else:
+                from intelligence_maxxxing.domain_packs.trading.strategy_profiles_v1 import (
+                    assess_strategy_request,
+                )
+
+                policy_out = assess_strategy_request(request)
 
             req_id = request_id or str(request.get("request_id") or f"req_{uuid.uuid4().hex[:16]}")
-            policy_out = assess_strategy_request(request)
             raw_setup_id = str(request.get("raw_setup_id") or "")
             assessment_id = "strat_asmt_" + hashlib.sha256(
                 f"{payload_hash}|{raw_setup_id}|{idem}".encode()
@@ -180,7 +189,7 @@ class TradingStrategyAssessmentService:
                     request_hash=payload_hash,
                     observation_id=None,
                     assessment_id=assessment_id,
-                    policy_version=PROFILE_VERSION,
+                    policy_version=str(policy_out.get("profile_version") or ""),
                     response=body,
                     response_hash=str(body["output_hash"]),
                     completed_at=_utc(),
